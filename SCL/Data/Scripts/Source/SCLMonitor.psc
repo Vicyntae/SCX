@@ -30,7 +30,7 @@ EndEvent
   EndIf
 EndEvent/;
 
-Int JA_AddQueue
+Int JF_AddQueue
 Int AddQueueNum = 0
 Event OnObjectEquipped(Form akBaseObject, ObjectReference akReference)
   If akBaseObject as Potion || akBaseObject as Ingredient
@@ -38,16 +38,24 @@ Event OnObjectEquipped(Form akBaseObject, ObjectReference akReference)
     If JMap.getInt(JM_Entry, "STIsNotFood") == 0 || (akBaseObject as Potion).IsPoison()
       SCLib.Notice(akBaseObject.GetName() + " was eaten!")
       Bool FirstItem
-      If !JA_AddQueue
-        JA_AddQueue = JValue.retain(JArray.object())
+      If !JF_AddQueue
+        JF_AddQueue = JValue.retain(JFormMap.object())
         FirstItem = True
       Else
         AddQueueNum += 1
       EndIf
       If akReference
-        JArray.addForm(JA_AddQueue, akReference)
+        If JFormMap.hasKey(JF_AddQueue, akReference)
+          JFormMap.setInt(JF_AddQueue, akReference, JFormMap.getInt(JF_AddQueue, akReference) + 1)
+        Else
+          JFormMap.setInt(JF_AddQueue, akReference, 1)
+        EndIf
       Else
-        JArray.addForm(JA_AddQueue, akBaseObject)
+        If JFormMap.hasKey(JF_AddQueue, akBaseObject)
+          JFormMap.setInt(JF_AddQueue, akBaseObject, JFormMap.getInt(JF_AddQueue, akBaseObject) + 1)
+        Else
+          JFormMap.setInt(JF_AddQueue, akBaseObject, 1)
+        EndIf
       EndIf
       Utility.Wait(0.5)
       If FirstItem
@@ -58,16 +66,18 @@ Event OnObjectEquipped(Form akBaseObject, ObjectReference akReference)
         AddQueueNum -= 1
         Return
       EndIf
-      ;Lock()
-      Int i = 0
-      Int NumItems = JArray.count(JA_AddQueue)
-      While i < NumItems
-        Form akItem = JArray.getForm(JA_AddQueue, i)
-        Note("Adding item " + nameGet(akItem))
-        SCLib.AddItem(GetTargetActor(), akItem as ObjectReference, akItem, 1)
-        i += 1
+      Form ItemKey = JFormMap.nextKey(JF_AddQueue)
+      While ItemKey
+        SCLib.AddItem(GetTargetActor(), ItemKey as ObjectReference, ItemKey, 1, aiItemCount = JFormMap.getInt(JF_AddQueue, ItemKey, 1))
+        ItemKey = JFormMap.nextKey(JF_AddQueue, ItemKey)
       EndWhile
-      JA_AddQueue = JValue.release(JA_AddQueue)
+      SCLib.Stomach.updateArchetype(GetTargetActor())
+      SCLib.updateDamage(GetTargetActor())
+      Int Handle = ModEvent.Create("SCLActorItemEaten")
+      ModEvent.PushForm(Handle, GetTargetActor())
+      ModEvent.PushInt(Handle, JF_AddQueue)
+      ModEvent.Send(Handle)
+      JF_AddQueue = JValue.release(JF_AddQueue)
     EndIf
   EndIf
 EndEvent

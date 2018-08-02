@@ -16,9 +16,19 @@ EndFunction
 Function ApplyMorphs(Actor akTarget, Float afSize)
   Int i
   Int NumMorphs = BodyMorphs.length
+  Debug.Notification("Start Size = " + afSize)
+  If Threshold >= 0
+    afSize -= Threshold
+  EndIf
+  afSize -= 1
+  If afSize < 0
+    afSize = 0
+  EndIf
+  afSize /= 100
+  Debug.Notification("End Size = " + afSize)
   While i < NumMorphs
-    Float applyVal = afSize - Threshold
-    NiOverride.SetBodyMorph(akTarget, BodyMorphs[i], MorphKeyName, applyVal)
+    NiOverride.SetBodyMorph(akTarget, BodyMorphs[i], MorphKeyName, afSize)
     i += 1
   EndWhile
+  NiOverride.UpdateModelWeight(akTarget)
 EndFunction

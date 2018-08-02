@@ -9,19 +9,7 @@ Form Property ItemForm
   EndFunction
 EndProperty
 
-Int Property ItemNum
-  Int Function get()
-    Return GetItemCount(GetNthForm(0))
-  EndFunction
-  Function set(Int aiVal)
-    Int CurrentNum = ItemNum
-    If aiVal > ItemNum
-      AddItem(ItemForm, aiVal - ItemNum, True)
-    ElseIf aiVal < ItemNum
-      RemoveItem(ItemForm, ItemNum - aiVal, True)
-    EndIf
-  EndFunction
-EndProperty
+Int Property ItemNum Auto
 
 Event OnActivate(ObjectReference akActionRef)
   If akActionRef == Game.GetPlayer()

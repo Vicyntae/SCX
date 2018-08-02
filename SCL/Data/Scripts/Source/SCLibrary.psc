@@ -6,13 +6,26 @@ SCLSettings Property SCLSet Auto
 Int Property JCReqAPI = 3 Auto
 Int Property JCReqFV = 3 Auto
 
-SCX_BaseItemType Property ItemType01 Auto
-SCX_BaseItemType Property ItemType02 Auto
 SCX_BaseItemArchetypes Property Stomach Auto
 SCX_BaseBodyEdit Property Belly Auto
 
 ;Others ************************************************************************
+Int ScriptVersion = 1
+Int Function checkVersion(Int aiStoredVersion)
+  {Return the new version and the script will update the stored version}
+  If ScriptVersion >= 1 && aiStoredVersion < 1
+    If Belly.CollectKeys.Length == 0
+      Belly.CollectKeys = New String[1]
+      Belly.CollectKeys[0] = "SCLStomachFullness"
+    Else
+      If Belly.CollectKeys.find("SCLStomachFullness") == -1
+        Belly.CollectKeys = PapyrusUtil.PushString(Belly.CollectKeys, "SCLStomachFullness")
+      EndIf
+    EndIf
 
+  EndIf
+  Return ScriptVersion
+EndFunction
 ;Library Functions *************************************************************
 String Function getStomachStatus(Actor akTarget, Int aiTargetData = 0)
 EndFunction
@@ -27,29 +40,30 @@ Function addMCMActorInformation(SCX_ModConfigMenu MCM, Int JI_Options, Actor akT
   MCM.AddHeaderOption("Stomach Stats")
   MCM.AddEmptyOption()
   Bool DEnable = SCXSet.DebugEnable
-  JIntMap.setStr(JI_Options, MCM.AddTextOption("Status", getStomachStatus(akTarget, aiTargetData)), "Stats.SCLibrary.SCLShowStomachStatus")
-  JIntMap.setStr(JI_Options, MCM.AddTextOption("Fullness", JMap.getFlt(aiTargetData, "SCLStomachFullness")), "Stats.SCLibrary.SCLShowStomachFullness")
+  String SKey = _getStrKey()
+  JIntMap.setStr(JI_Options, MCM.AddTextOption("Status", getStomachStatus(akTarget, aiTargetData)), "Stats." + SKey + ".SCLShowStomachStatus")
+  JIntMap.setStr(JI_Options, MCM.AddTextOption("Fullness", JMap.getFlt(aiTargetData, "SCLStomachFullness")), "Stats." + SKey + ".SCLShowStomachFullness")
   If DEnable
-    JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Base Capacity", JMap.getFlt(aiTargetData, "SCLStomachCapacity"), "{2}"), "Stats.SCLibrary.SCLEditStomachBase")
-    JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Stretchiness", JMap.getFlt(aiTargetData, "SCLStomachStretch", 1), "x{2}"), "Stats.SCLibrary.SCLEditStomachStretch")
+    JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Base Capacity", JMap.getFlt(aiTargetData, "SCLStomachCapacity"), "{2}"), "Stats." + SKey + ".SCLEditStomachBase")
+    JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Stretchiness", JMap.getFlt(aiTargetData, "SCLStomachStretch", 1), "x{2}"), "Stats." + SKey + ".SCLEditStomachStretch")
   Else
-    JIntMap.setStr(JI_Options, MCM.AddTextOption("Base Capacity", JMap.getFlt(aiTargetData, "SCLStomachCapacity")), "Stats.SCLibrary.SCLShowStomachBase")
-    JIntMap.setStr(JI_Options, MCM.AddTextOption("Stretchiness", JMap.getFlt(aiTargetData, "SCLStomachStretch")), "Stats.SCLibrary.SCLShowStomachStretch")
+    JIntMap.setStr(JI_Options, MCM.AddTextOption("Base Capacity", JMap.getFlt(aiTargetData, "SCLStomachCapacity")), "Stats." + SKey + ".SCLShowStomachBase")
+    JIntMap.setStr(JI_Options, MCM.AddTextOption("Stretchiness", JMap.getFlt(aiTargetData, "SCLStomachStretch")), "Stats." + SKey + ".SCLShowStomachStretch")
   EndIf
-  JIntMap.setStr(JI_Options, MCM.AddTextOption("Adjusted Capacity", getAdjCap(akTarget, aiTargetData)), "Stats.SCLibrary.SCLShowStomachAdjBase")
-  JIntMap.setStr(JI_Options, MCM.AddTextOption("Max Capacity", getMaxCap(akTarget, aiTargetData)), "Stats.SCLibrary.SCLShowStomachMaxBase")
+  JIntMap.setStr(JI_Options, MCM.AddTextOption("Adjusted Capacity", getAdjCap(akTarget, aiTargetData)), "Stats." + SKey + ".SCLShowStomachAdjBase")
+  JIntMap.setStr(JI_Options, MCM.AddTextOption("Max Capacity", getMaxCap(akTarget, aiTargetData)), "Stats." + SKey + ".SCLShowStomachMaxBase")
 
   If DEnable
-    JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Digestion Rate", JMap.getFlt(aiTargetData, "SCLDigestRate")), "Stats.SCLibrary.SCLEditDigestRate")
-    JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Gluttony", JMap.getInt(aiTargetData, "SCLGluttony")), "Stats.SCLibrary.SCLEditGluttony")
-    JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Item Storage Capacity", JMap.getInt(aiTargetData, "SCLStomachStorage")), "Stats.SCLibrary.SCLEditStomachStorage")
+    JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Digestion Rate", JMap.getFlt(aiTargetData, "SCLDigestRate")), "Stats." + SKey + ".SCLEditDigestRate")
+    JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Gluttony", JMap.getInt(aiTargetData, "SCLGluttony")), "Stats." + SKey + ".SCLEditGluttony")
+    JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Item Storage Capacity", JMap.getInt(aiTargetData, "SCLStomachStorage")), "Stats." + SKey + ".SCLEditStomachStorage")
   Else
-    JIntMap.setStr(JI_Options, MCM.AddTextOption("Digestion Rate", JMap.getFlt(aiTargetData, "SCLDigestRate")), "Stats.SCLibrary.SCLShowDigestRate")
-    JIntMap.setStr(JI_Options, MCM.AddTextOption("Gluttony", JMap.getInt(aiTargetData, "SCLGluttony")), "Stats.SCLibrary.SCLShowGluttony")
-    JIntMap.setStr(JI_Options, MCM.AddTextOption("Item Storage Capacity", JMap.getInt(aiTargetData, "SCLStomachStorage")), "Stats.SCLibrary.SCLShowStomachStorage")
+    JIntMap.setStr(JI_Options, MCM.AddTextOption("Digestion Rate", JMap.getFlt(aiTargetData, "SCLDigestRate")), "Stats." + SKey + ".SCLShowDigestRate")
+    JIntMap.setStr(JI_Options, MCM.AddTextOption("Gluttony", JMap.getInt(aiTargetData, "SCLGluttony")), "Stats." + SKey + ".SCLShowGluttony")
+    JIntMap.setStr(JI_Options, MCM.AddTextOption("Item Storage Capacity", JMap.getInt(aiTargetData, "SCLStomachStorage")), "Stats." + SKey + ".SCLShowStomachStorage")
   EndIf
-  JIntMap.setStr(JI_Options, MCM.AddTextOption("Items Stored", SCXLib.countItemType(akTarget, 2, aiTargetData)), "Stats.SCLibrary.SCLShowNumItemsStored")
-  JIntMap.setStr(JI_Options, MCM.AddMenuOption("Show Stomach Contents", ""), "Stats.SCLibrary.SCLShowStomachContents")
+  JIntMap.setStr(JI_Options, MCM.AddTextOption("Items Stored", SCXLib.countItemType(akTarget, 2, aiTargetData)), "Stats." + SKey + ".SCLShowNumItemsStored")
+  JIntMap.setStr(JI_Options, MCM.AddMenuOption("Show Stomach Contents", ""), "Stats." + SKey + ".SCLShowStomachContents")
 
   MCM.AddEmptyOption()
 EndFunction
@@ -58,12 +72,14 @@ Function addMCMActorRecords(SCX_ModConfigMenu MCM, Int JI_Options, Actor akTarge
   If !aiTargetData
     aiTargetData = getTargetData(akTarget)
   EndIf
-  JIntMap.setStr(JI_Options, MCM.AddTextOption("Total Digested Food", JMap.getFlt(aiTargetData, "SCLTotalDigestedFood")), "Records.SCLibrary.SCLTotalDigestedFood")
-  JIntMap.setStr(JI_Options, MCM.AddTextOption("Number Times Vomited", JMap.getFlt(aiTargetData, "SCLTotalTimesVomited")), "Records.SCLibrary.SCLTotalTimesVomited")
-  JIntMap.setStr(JI_Options, MCM.AddTextOption("Highest Stomach Fullness", JMap.getFlt(aiTargetData, "SCLHighestStomachFullness")), "Records.SCLibrary.SCLHighestStomachFullness")
-  JIntMap.setStr(JI_Options, MCM.AddTextOption("Number of Digested Items", JMap.getFlt(aiTargetData, "SCLNumItemsDigested")), "Records.SCLibrary.SCLNumDigestedItems")
+  String SKey = _getStrKey()
 
-  MCM.AddEmptyOption()
+  JIntMap.setStr(JI_Options, MCM.AddTextOption("Total Digested Food", JMap.getFlt(aiTargetData, "SCLTotalDigestedFood")), "Records." + SKey + ".SCLTotalDigestedFood")
+  JIntMap.setStr(JI_Options, MCM.AddTextOption("Number Times Vomited", JMap.getFlt(aiTargetData, "SCLTotalTimesVomited")), "Records." + SKey + ".SCLTotalTimesVomited")
+  JIntMap.setStr(JI_Options, MCM.AddTextOption("Highest Stomach Fullness", JMap.getFlt(aiTargetData, "SCLHighestStomachFullness")), "Records." + SKey + ".SCLHighestStomachFullness")
+  JIntMap.setStr(JI_Options, MCM.AddTextOption("Number of Digested Items", JMap.getFlt(aiTargetData, "SCLNumItemsDigested")), "Records." + SKey + ".SCLNumDigestedItems")
+
+  ;MCM.AddEmptyOption()
 EndFunction
 
 Function setSelectOptions(SCX_ModConfigMenu MCM, String asValue, Int aiOption)
@@ -102,8 +118,8 @@ Float[] Function getSliderOptions(SCX_ModConfigMenu MCM, String asValue)
 Float[] SliderValues = New Float[5]
 Int ActorData = MCM.SelectedData
   If asValue == "SCLEditStomachBase"
-    SliderValues[0] = JMap.getFlt(ActorData, "SCLStomachBase")
-    SliderValues[1] = JMap.getFlt(ActorData, "SCLStomachBase")
+    SliderValues[0] = JMap.getFlt(ActorData, "SCLStomachCapacity")
+    SliderValues[1] = JMap.getFlt(ActorData, "SCLStomachCapacity")
     SliderValues[2] = 1
     SliderValues[3] = 1
     SliderValues[4] = 2000
@@ -138,7 +154,7 @@ EndFunction
 Function setSliderOptions(SCX_ModConfigMenu MCM, String asValue, Int aiOption, Float afValue)
   Int ActorData = MCM.SelectedData
   If asValue == "SCLEditStomachBase"
-    JMap.setFlt(ActorData, "SCLStomachBase", afValue)
+    JMap.setFlt(ActorData, "SCLStomachCapacity", afValue)
     MCM.SetSliderOptionValue(aiOption, afValue, "{2}")
   ElseIf asValue == "SCLEditStomachStretch"
     JMap.setFlt(ActorData, "SCLStomachStretch", afValue)
@@ -177,17 +193,7 @@ String[] Function getMCMMenuOptions02(SCX_ModConfigMenu MCM, String asValue)
       Form ItemKey = JFormMap.getNthKey(JF_MCMMenuOptionsStomachContents, i)
       Int JM_ItemEntry = JFormMap.getObj(JF_MCMMenuOptionsStomachContents, ItemKey)
       Int ItemType = JMap.getInt(JM_ItemEntry, "ItemType")
-      String ItemEntry
-      If ItemType == 1
-        ItemEntry = ItemType01.getItemListDesc(ItemKey, JM_ItemEntry)
-      ElseIf ItemType == 2
-        ItemEntry == ItemType02.getItemListDesc(ItemKey, JM_ItemEntry)
-      Else
-        SCX_BaseItemType ItemBase = getSCX_BaseAlias(SCXSet.JI_BaseItemTypes, aiBaseID = ItemType) as SCX_BaseItemType
-        If ItemBase
-          ItemEntry = ItemBase.getItemListDesc(ItemKey, JM_ItemEntry)
-        EndIf
-      EndIf
+      String ItemEntry = Stomach.getItemListDesc(ItemKey, JM_ItemEntry)
       FoodEntries[i] = ItemEntry
       i += 1
     EndWhile
@@ -240,7 +246,6 @@ Function setHighlight(SCX_ModConfigMenu MCM, String asValue, Int aiOption)
   ElseIf asValue == "SCLNumDigestedItems"
     MCM.SetInfoText("Total number of items digested in this actor's stomach.")
   EndIf
-
 EndFunction
 
 ;*******************************************************************************
@@ -248,7 +253,6 @@ EndFunction
 ;*******************************************************************************
 Spell Property SCL_MonitorSpell Auto
 Function monitorSetup(SCX_Monitor akMonitor, Actor akTarget)
-  Note("Running setup. Checking for spell. Spell = " + SCL_MonitorSpell as Bool)
   If !akTarget.HasSpell(SCL_MonitorSpell)
     akTarget.AddSpell(SCL_MonitorSpell, False)
   EndIf
@@ -270,8 +274,10 @@ Function sendProcessEvent(Actor akTarget, Float afTimePassed)
 EndFunction
 
 Function monitorUpdate(SCX_Monitor akMonitor, Actor akTarget, Int aiTargetData, Float afTimePassed, Float afCurrentUpdateTime, Bool abDailyUpdate)
+  Note("Monitor update received. Sending process event.")
   sendProcessEvent(akTarget, afTimePassed)
   Bool Digesting = JMap.getInt(aiTargetData, "SCLNowDigesting") as Bool
+  Utility.Wait(0.1)
   If Digesting
     Int i
     While Digesting && i < 50
@@ -281,131 +287,12 @@ Function monitorUpdate(SCX_Monitor akMonitor, Actor akTarget, Int aiTargetData, 
     EndWhile
   EndIf
 
-  Float Fullness = Stomach.updateArchetype(akTarget, aiTargetData)
-  ;Note("Fullness after update = " + Fullness)
-  Float Max = getMaxCap(akTarget)
-
-  If Fullness < 0
-    Issue("updateFullness return a total of less than 0. Setting to 0")
-    Fullness = 0
-  EndIf
-
-  ;JMap.setFlt(aiTargetData, "STFullness", Fullness)
-  If Fullness > JMap.getFlt(aiTargetData, "SCLHighestStomachFullness")
-    JMap.setFlt(aiTargetData, "SCLHighestStomachFullness", Fullness)
-  EndIf
-
-  Float Base = getAdjCap(akTarget, aiTargetData)
-
-  If Fullness > Base
-    Float Overfull = (Fullness - Base) / (Max - Base)
-
-    Int OverfullTier
-    If Overfull > 1
-      OverfullTier = 6
-    ElseIf Overfull > 0.8
-      OverfullTier = 5
-    ElseIf Overfull > 0.6
-      OverfullTier = 4
-    ElseIf Overfull > 0.4
-      OverfullTier = 3
-    ElseIf Overfull > 0.2
-      OverfullTier = 2
-    ElseIf Overfull
-      OverfullTier = 1
-    Else
-      OverfullTier = 0
-    EndIf
-
-    If Overfull
-      OverfullTier += Math.Floor(Fullness / 100) ;Right now, it every 100 units per tier, maybe adjust this to be more extreme
-    EndIf
-
-    If OverfullTier > SCLSet.SCL_OverfullSpellArray.length - 1  ;Just using this as a test marker, all spell arrays should be filled the same
-      OverfullTier = SCLSet.SCL_OverfullSpellArray.length - 1 ;Ensures that the overfull tier does not go above spells set
-    EndIf
-
-    Int CurrentOverfull = JMap.getInt(aiTargetData, "SCLAppliedOverfullTier")
-    If OverfullTier != CurrentOverfull
-      SCLSet.SCL_OverfullSpellArray[0].cast(akTarget)
-      Utility.Wait(0.2)
-      SCLSet.SCL_OverfullSpellArray[OverfullTier].cast(akTarget) ;If it's tier 0, it casts the dispel effect and nothing else
-
-      JMap.setInt(aiTargetData, "SCLAppliedOverfullTier", OverfullTier)
-    EndIf
-  ElseIf JMap.getInt(aiTargetData, "SCLAppliedOverfullTier")  != 0
-    SCLSet.SCL_OverfullSpellArray[0].cast(akTarget) ;If it's tier 0, it casts the dispel effect and nothing else
-    JMap.setInt(aiTargetData, "SCLAppliedOverfullTier", 0)
-  EndIf
-
-  ;Question: should this be here? Or should we move it to SCX or SCN?
-  ;/Int HeavyPerk = JMap.getInt(aiTargetData, "SCLHeavyBurden")
-  Int BaseWeight = 100 * (HeavyPerk + 1)
-  If Fullness > BaseWeight
-    Int MaxWeight = 150 * (HeavyPerk + 1)
-    Float HeavyPercent = (Fullness - BaseWeight) / (MaxWeight - BaseWeight)
-    Int HeavyTier
-    If HeavyPercent > 1
-      HeavyTier = 6
-    ElseIf HeavyPercent > 0.8
-      HeavyTier = 5
-    ElseIf HeavyPercent > 0.6
-      HeavyTier = 4
-    ElseIf HeavyPercent > 0.4
-      HeavyTier = 3
-    ElseIf HeavyPercent > 0.2
-      HeavyTier = 2
-    ElseIf HeavyPercent
-      HeavyTier = 1
-    Else
-      HeavyTier = 0
-    EndIf
-    If HeavyTier > SCLSet.SCL_HeavySpeedArray.length - 1
-      HeavyTier = SCLSet.SCL_HeavySpeedArray.length - 1
-    EndIf
-    If HeavyTier >= 6
-      JMap.setInt(aiTargetData, "SCL_HeavyBurdenTracker", 1)
-    EndIf
-
-    Int CurrentHeavy = JMap.getInt(aiTargetData, "SCLAppliedHeavyTier")
-    If HeavyTier != CurrentHeavy
-      SCLSet.SCL_HeavySpeedArray[HeavyTier].cast(akTarget)
-      ;Add more spell arrays here.
-
-      JMap.setInt(aiTargetData, "SCLAppliedHeavyTier", HeavyTier)
-    EndIf
-  ElseIf JMap.getInt(aiTargetData, "SCLAppliedHeavyTier") != 0
-    SCLSet.SCL_HeavySpeedArray[0].cast(akTarget)
-    JMap.setInt(aiTargetData, "SCLAppliedHeavyTier", 0)
-  EndIf/;
-
-  Int Storage = countItemType(akTarget, 2, True, aiTargetData)
-  Int StorageMax = JMap.getInt(aiTargetData, "SCLStomachStorage")
-  If Storage > StorageMax
-    Int StorageTier = ((Storage - StorageMax) / 2) + (StorageMax - 1)
-    If StorageTier > SCLSet.SCL_StoredDamageArray.length - 1
-      StorageTier = SCLSet.SCL_StoredDamageArray.length - 1
-    ElseIf StorageTier < 0
-      StorageTier = 0
-    EndIf
-    Int CurrentStorageDamage = JMap.getInt(aiTargetData, "SCLAppliedStorageTier")
-    If StorageTier != CurrentStorageDamage
-
-      SCLSet.SCL_StoredDamageArray[StorageTier].cast(akTarget)
-      JMap.setInt(aiTargetData, "SCLAppliedStorageTier", StorageTier)
-    EndIf
-  ElseIf JMap.getInt(aiTargetData, "SCLAppliedStorageTier") != 0
-    SCLSet.SCL_StoredDamageArray[0].cast(akTarget)
-    JMap.setInt(aiTargetData, "SCLAppliedStorageTier", 0)
-  EndIf
-
+  updateDamage(akTarget, aiTargetData)
   Belly.updateBodyPart(akTarget)
-  If abDailyUpdate
+  ;/If abDailyUpdate
     Notice("Performing daily update")
     ;performDailyUpdate(akTarget)
-  Endif
-
-  ;Notice("Finished updating " + akTarget.GetLeveledActorBase().GetName())
+  EndIf/;
 EndFunction
 
 Function monitorDeath(SCX_Monitor akMonitor, Actor akTarget, Actor akKiller)
@@ -421,6 +308,137 @@ Function monitorReloadMaintenence(SCX_Monitor Mon, Actor akTarget)
   EndIf
   If !akTarget.HasSpell(SCL_MonitorSpell)
     akTarget.AddSpell(SCL_MonitorSpell, False)
+  EndIf
+EndFunction
+
+Function addUIEActorStats(Actor akTarget, UIListMenu UIList, Int JA_OptionList, Int aiMode = 0)
+  Int TargetData = getTargetData(akTarget)
+  String SKey = _getStrKey()
+  Bool DEnable = SCXSet.DebugEnable
+  UIList.AddEntryItem("Status: " + getStomachStatus(akTarget, TargetData))
+  JArray.addStr(JA_OptionList, SKey + ".SCLShowStomachStatus")
+
+  UIList.AddEntryItem("Fullness: " + JMap.getFlt(TargetData, "SCLStomachFullness"))
+  JArray.addStr(JA_OptionList, SKey + ".SCLShowStomachFullness")
+
+  If DEnable
+    UIList.AddEntryItem("Edit Base Capacity: " + JMap.getFlt(TargetData, "SCLStomachCapacity"))
+    JArray.addStr(JA_OptionList, SKey + ".SCLEditStomachBase")
+
+    UIList.AddEntryItem("Edit Base Capacity: " + JMap.getFlt(TargetData, "SCLStomachCapacity"))
+    JArray.addStr(JA_OptionList, SKey + ".SCLEditStomachStretch")
+  Else
+    UIList.AddEntryItem("Base Capacity: " + JMap.getFlt(TargetData, "SCLStomachCapacity"))
+    JArray.addStr(JA_OptionList, SKey + ".SCLShowStomachBase")
+
+    UIList.AddEntryItem("Stretchiness: " + JMap.getFlt(TargetData, "SCLStomachStretch"))
+    JArray.addStr(JA_OptionList, SKey + ".SCLShowStomachStretch")
+  EndIf
+
+  UIList.AddEntryItem("Adjusted Capacity: " + getAdjCap(akTarget, TargetData))
+  JArray.addStr(JA_OptionList, SKey + ".SCLShowStomachAdjBase")
+
+  UIList.AddEntryItem("Max Capacity: " + getMaxCap(akTarget, TargetData))
+  JArray.addStr(JA_OptionList, SKey + ".SCLShowStomachMaxBase")
+
+  If DEnable
+    UIList.AddEntryItem("Edit Digestion Rate: " + JMap.getFlt(TargetData, "SCLDigestRate"))
+    JArray.addStr(JA_OptionList, SKey + ".SCLEditDigestRate")
+
+    UIList.AddEntryItem("Edit Gluttony: " + JMap.getFlt(TargetData, "SCLGluttony"))
+    JArray.addStr(JA_OptionList, SKey + ".SCLEditGluttony")
+
+    UIList.AddEntryItem("Edit Item Storage Capacity: " + JMap.getFlt(TargetData, "SCLStomachStorage"))
+    JArray.addStr(JA_OptionList, SKey + ".SCLEditStomachStorage")
+  Else
+    UIList.AddEntryItem("Digestion Rate: " + JMap.getFlt(TargetData, "SCLDigestRate"))
+    JArray.addStr(JA_OptionList, SKey + ".SCLShowDigestRate")
+
+    UIList.AddEntryItem("Gluttony: " + JMap.getFlt(TargetData, "SCLGluttony"))
+    JArray.addStr(JA_OptionList, SKey + ".SCLShowGluttony")
+
+    UIList.AddEntryItem("Item Storage Capacity: " + JMap.getFlt(TargetData, "SCLStomachStorage"))
+    JArray.addStr(JA_OptionList, SKey + ".SCLShowStomachStorage")
+  EndIf
+
+  UIList.AddEntryItem("Items Stored: " + SCXLib.countItemType(akTarget, 2, TargetData))
+  JArray.addStr(JA_OptionList, SKey + ".SCLShowNumItemsStored")
+EndFunction
+
+Bool Function handleUIEStatFromList(Actor akTarget, String asValue)
+  Int TargetData = getTargetData(akTarget)
+  If asValue == "SCLShowStomachStatus"
+    Debug.MessageBox(getStomachStatus(akTarget, TargetData))
+    Utility.Wait(0.1)
+  ElseIf asValue == "SCLShowStomachFullness"
+    Debug.MessageBox("How full this actor's stomach is in units.")
+    Utility.Wait(0.1)
+  ElseIf asValue == "SCLShowStomachBase"
+    Debug.MessageBox("How much this actor is able to hold in their stomach, before adjustments, in units.")
+    Utility.Wait(0.1)
+  ElseIf asValue == "SCLShowStomachStretch"
+    Debug.MessageBox("How much this actor is able to stretch their stomach. Multiplies the adjusted base capacity to give the max capacity. The actor experiences discomfort beyond the adjusted base.")
+    Utility.Wait(0.1)
+  ElseIf asValue == "SCLShowStomachAdjBase"
+    Debug.MessageBox("How much this actor is able to hold in their stomach in units. Base capacity multiplied by the actor's size.")
+    Utility.Wait(0.1)
+  ElseIf asValue == "SCLShowStomachMaxBase"
+    Debug.MessageBox("How much this actor is able to hold in their stomach before vomiting.")
+    Utility.Wait(0.1)
+  ElseIf asValue == "SCLShowDigestRate"
+    Debug.MessageBox("How fast this actor can break down items (in units/hour).")
+    Utility.Wait(0.1)
+  ElseIf asValue == "SCLShowGluttony"
+    Debug.MessageBox("How much this actor likes to eat. Currently unused.")
+    Utility.Wait(0.1)
+  ElseIf asValue == "SCLShowNumItemsStored"
+    Debug.MessageBox("Current number of items being held without digesting in the actor's stomach.")
+    Utility.Wait(0.1)
+  ElseIf asValue == "SCLEditStomachBase"
+    UITextEntryMenu UIInput = UIExtensions.GetMenu("UITextEntryMenu", True) as UITextEntryMenu
+    UIInput.SetPropertyString("text", "Enter new base capacity value here.")
+    UIInput.OpenMenu()
+    Float Result = UIInput.GetResultString() as Float
+    If Result <= 0
+      Result == 0.1
+    EndIf
+    JMap.setFlt(TargetData, "SCLStomachCapacity", Result)
+  ElseIf asValue == "SCLEditStomachStretch"
+    UITextEntryMenu UIInput = UIExtensions.GetMenu("UITextEntryMenu", True) as UITextEntryMenu
+    UIInput.SetPropertyString("text", "Enter new stretch value here.")
+    UIInput.OpenMenu()
+    Float Result = UIInput.GetResultString() as Float
+    If Result <= 0
+      Result == 0.1
+    EndIf
+    JMap.setFlt(TargetData, "SCLStomachStretch", Result)
+  ElseIf asValue == "SCLEditDigestRate"
+    UITextEntryMenu UIInput = UIExtensions.GetMenu("UITextEntryMenu", True) as UITextEntryMenu
+    UIInput.SetPropertyString("text", "Enter new digestion rate value here.")
+    UIInput.OpenMenu()
+    Float Result = UIInput.GetResultString() as Float
+    If Result < 0
+      Result == 0
+    EndIf
+    JMap.setFlt(TargetData, "SCLDigestRate", Result)
+  ElseIf asValue == "SCLEditGluttony"
+    UITextEntryMenu UIInput = UIExtensions.GetMenu("UITextEntryMenu", True) as UITextEntryMenu
+    UIInput.SetPropertyString("text", "Enter new gluttony value here.")
+    UIInput.OpenMenu()
+    Int Result = UIInput.GetResultString() as Int
+    If Result < 0
+      Result == 0
+    EndIf
+    JMap.setInt(TargetData, "SCLGluttony", Result)
+  ElseIf asValue == "SCLEditStomachStorage"
+    UITextEntryMenu UIInput = UIExtensions.GetMenu("UITextEntryMenu", True) as UITextEntryMenu
+    UIInput.SetPropertyString("text", "Enter new stomach storage limit value here.")
+    UIInput.OpenMenu()
+    Int Result = UIInput.GetResultString() as Int
+    If Result < 0
+      Result == 0
+    EndIf
+    JMap.setInt(TargetData, "SCLStomachStorage", Result)
   EndIf
 EndFunction
 ;*******************************************************************************
@@ -452,7 +470,7 @@ Float Function giveExpandBonus(Actor akTarget, Int aiMultiply = 1, Int aiTargetD
   EndIf
   Bonus *= aiMultiply
   Notice("Adding expand bonus of " + Bonus + " to " + nameGet(akTarget))
-  JMap.setFlt(TargetData, "SCLStomachBase", JMap.getFlt(TargetData, "SCLStomachBase") + Bonus)
+  JMap.setFlt(TargetData, "SCLStomachCapacity", JMap.getFlt(TargetData, "SCLStomachCapacity") + Bonus)
   JMap.setFlt(TargetData, "SCLExpandNum", JMap.getFlt(TargetData, "SCLExpandNum") + 1)
 
   Return Bonus
@@ -460,12 +478,12 @@ EndFunction
 
 Float Function getMaxCap(Actor akTarget, Int aiTargetData = 0)
   Int TargetData = getData(akTarget, aiTargetData)
-  Return getAdjCap(akTarget, TargetData) * JMap.getFlt(TargetData, "STStretch")
+  Return getAdjCap(akTarget, TargetData) * JMap.getFlt(TargetData, "SCLStomachStretch")
 EndFunction
 
 Float Function getAdjCap(Actor akTarget, Int aiTargetData = 0)
   Int TargetData = getData(akTarget, aiTargetData)
-  Return JMap.getFlt(TargetData, "SCLStomachBase") * akTarget.GetScale() * NetImmerse.GetNodeScale(akTarget, "NPC Root [Root]", False) * SCLSet.AdjBaseMulti
+  Return JMap.getFlt(TargetData, "SCLStomachCapacity") * akTarget.GetScale() * NetImmerse.GetNodeScale(akTarget, "NPC Root [Root]", False) * SCLSet.AdjBaseMulti
 EndFunction
 
 Float Function getOverfullPercent(Actor akTarget, Int aiTargetData = 0)
@@ -654,12 +672,11 @@ Function genActorProfile(Actor akTarget, Bool abBasic, Int aiTargetData)
   ;JMap.setFlt(TargetData, "LastUpdateTime", Utility.GetCurrentGameTime())
   ;JMap.setFlt(TargetData, "STLastFullness", 0)
   ;JMap.setObj(TargetData, "SCLTrackingData", JMap.object())
-  ;JMap.setInt(TargetData, "SCLActorDataVersion", ScriptDataVersion)
+  ;JMap.setInt(TargetData, "SCX_ActorDataVersion", ScriptDataVersion)
 EndFunction
 
 ;Item Functions ****************************************************************
 Int Function addItem(Actor akTarget, ObjectReference akReference = None, Form akBaseObject = None, Int aiItemType, Int aiStoredItemType = 0, Float afWeightValueOverride = -1.0, Int aiItemCount = 1, Bool abMoveNow = True)
-  Note("addItem run on SCLibrary.")
   Return Stomach.addToContents(akTarget, akReference, akBaseObject, aiItemType, aiStoredItemType, afWeightValueOverride, aiItemCount, abMoveNow)
 EndFunction
 
@@ -724,13 +741,26 @@ Function updateDamage(Actor akTarget, Int aiTargetData = 0)
   Else
     TargetData = getTargetData(akTarget)
   EndIf
-  Float Fullness = JMap.getFlt(TargetData, "STFullness")
+  Float Fullness = JMap.getFlt(TargetData, "SCLStomachFullness")
+  Float MaxCap = getMaxCap(akTarget, TargetData)
+
+  If Fullness > JMap.getFlt(aiTargetData, "SCLHighestStomachFullness")
+    JMap.setFlt(aiTargetData, "SCLHighestStomachFullness", Fullness)
+  EndIf
+
+  If Fullness > MaxCap && canVomit(akTarget)
+    Stomach.removeAmountActorItems(akTarget,Fullness * 0.3, 0.2, 0.2)
+    addVomitDamage(akTarget)
+    JMap.setInt(TargetData, "SCLTotalTimesVomited", JMap.getInt(TargetData, "SCLTotalTimesVomited") + 1)
+  EndIf
 
   Float Overfull = getOverfullPercent(akTarget, TargetData)
   Int OverfullTier = getOverfullTier(Overfull, Fullness)
+
   If OverfullTier > SCLSet.SCL_OverfullSpellArray.length - 1  ;Just using this as a test marker, all spell arrays should be filled the same
     OverfullTier = SCLSet.SCL_OverfullSpellArray.length - 1 ;Ensures that the overfull tier does not go above spells set
   EndIf
+
   Int CurrentOverfull = getCurrentOverfull(akTarget, TargetData)
   If OverfullTier != CurrentOverfull
     SCLSet.SCL_OverfullSpellArray[0].cast(akTarget) ;If it's tier 0, it casts the dispel effect and nothing else
@@ -739,29 +769,15 @@ Function updateDamage(Actor akTarget, Int aiTargetData = 0)
     JMap.setInt(TargetData, "SCLAppliedOverfullTier", OverfullTier)
   EndIf
 
-  ;/Float Heavy = getHeavyPercent(akTarget, TargetData)
-  Int HeavyTier = getHeavyTier(Heavy)
-  If HeavyTier > SCLSet.SCL_HeavySpeedArray.length - 1
-    HeavyTier = SCLSet.SCL_HeavySpeedArray.length - 1
-  EndIf
-  Int CurrentHeavy = getCurrentHeavy(akTarget, TargetData)
-  If HeavyTier != CurrentHeavy
-    SCLSet.SCL_HeavySpeedArray[HeavyTier].cast(akTarget)
-    ;Add more spell arrays here.
-
-    JMap.setInt(TargetData, "SCLAppliedHeavyTier", HeavyTier)
-  EndIf
-  If HeavyTier >= 6
-    JMap.setInt(TargetData, "SCLHeavyBurdenTracker", 1)
-  EndIf/;
-
   Int Storage = SCXLib.countItemType(akTarget, 2, True)
   Int StorageMax = JMap.getInt(TargetData, "SCLStomachStorage")
   If Storage > StorageMax
+
     Int Level = ((Storage - StorageMax) / 2) + (StorageMax - 1)
     If Level > SCLSet.SCL_StoredDamageArray.length - 1
       Level = SCLSet.SCL_StoredDamageArray.length - 1
     EndIf
+
     Int CurrentStorageDamage = getCurrentStorageDamage(akTarget, TargetData)
     If Level != CurrentStorageDamage
       SCLSet.SCL_StoredDamageArray[Level].cast(akTarget)

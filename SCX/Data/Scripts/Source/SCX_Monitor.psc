@@ -42,7 +42,7 @@ Function Setup()
   Int JA_UpdateList = (GetOwningQuest() as SCX_MonitorManager).JA_MonitorUpdatePrioityList
   Int i
   Int NumLibs = JArray.count(JA_UpdateList)
-  Note("Number of Libraries =" + NumLibs)
+  Notice("Number of Libraries =" + NumLibs)
   While i < NumLibs
     SCX_BaseLibrary Lib = JArray.getForm(JA_UpdateList, i) as SCX_BaseLibrary
     If Lib

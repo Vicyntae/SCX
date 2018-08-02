@@ -46,14 +46,14 @@ Int Function getActorData(Actor akTarget) Global
   Data now stored under ActorBase for unique actors
   Function will generate new actor profile if no data found && abGenProfile == True}
   Form Target = akTarget.GetLeveledActorBase()
-  Int Data = JFormDB.findEntry("SCLActorData", Target)
+  Int Data = JFormDB.findEntry("SCX_ActorData", Target)
   Return Data
 EndFunction
 
 Function eraseActorData(Actor akTarget) Global
   Form Target = akTarget.GetLeveledActorBase()
   If Target
-    Int JF_ActorData = JDB.solveObj(".SCLActorData")
+    Int JF_ActorData = JDB.solveObj(".SCX_ActorData")
     If JF_ActorData
       JFormMap.removeKey(JF_ActorData, Target)
     EndIf
@@ -64,6 +64,8 @@ Int JA_LibGenActorProfilePriorityList
 Int Function generateActorProfile(Actor akTarget, Bool abBasic)
   String LibraryName = JMap.nextKey(SCXSet.JM_BaseLibraryList)
   Int aiTargetData = JFormDB.makeEntry("SCX_ActorData", akTarget)
+  JMap.setFlt(aiTargetData, "LastUpdateTime", Utility.GetCurrentGameTime())
+
   If !JA_LibGenActorProfilePriorityList
     JA_LibGenActorProfilePriorityList = JValue.retain(JArray.object())
     Int JI_PriorityList = JValue.retain(JIntMap.object())
@@ -482,14 +484,17 @@ String Function getActorMainMenuName(Int aiIndex, Int aiMode = 0)
   Return (JArray.getForm(JA_ActorMainMenuPriorityList, aiIndex) as SCX_BaseLibrary).ActorMenuNames[aiMode]
 EndFunction
 
-Event OnActorMainMenuOpen(Actor akTarget, Int aiMode = 0)
+Event OnActorMainMenuOpen(Form akTarget, Int aiMode = 0)
   Notice("Showing Actor Main Menu for " + nameGet(akTarget))
-  If !buildActorMainMenu(akTarget, aiMode)
-    Return
+  Actor Target = akTarget as Actor
+  If Target
+    If !buildActorMainMenu(Target, aiMode)
+      Return
+    EndIf
+    SCXSet.SCX_ModConfigMenuQuest.SelectedActor = Target
+    Int Option = UIExtensions.OpenMenu("UIWheelMenu", Target)
+    handleActorMainMenu(Target, Option, aiMode)
   EndIf
-  SCXSet.SCX_ModConfigMenuQuest.SelectedActor = akTarget
-  Int Option = UIExtensions.OpenMenu("UIWheelMenu", akTarget)
-  handleActorMainMenu(akTarget, Option, aiMode)
 EndEvent
 
 Bool Function buildActorMainMenu(Actor akTarget, Int aiMode = 0)
@@ -533,15 +538,18 @@ Function handleActorMainMenu(Actor akTarget, Int aiOption, Int aiMode = 0)
     ;showActorEffectsMenu(akTarget) ;Is this necessary with all effects being added through creation kit?
   ElseIf aiOption == 3
     String Arch = showArchetypesListMenu(akTarget)
-    If Arch != "Cancel"
-      showExpellList(akTarget, Arch)
+    If Arch && Arch != "Cancel"
+      SCX_BaseItemArchetypes ArchForm = getSCX_BaseAlias(SCXSet.JM_BaseArchetypes, Arch) as SCX_BaseItemArchetypes
+      If ArchForm
+        ArchForm.removeAllActorItems(akTarget, False)
+      EndIf
     EndIf
   ElseIf aiOption == 4
     showPerksList(akTarget)
   ElseIf aiOption == 5
     openNextActorMainMenu(akTarget, 0)
   ElseIf aiOption == 6
-    String Arch = showArchetypesListMenu(akTarget)
+    String Arch = showArchetypesListMenu(akTarget, True)
     If Arch != "Cancel"
       If akTarget == PlayerRef || akTarget.IsPlayerTeammate() || SCXSet.DebugEnable
         showActorContentsMenu(akTarget, 1, Arch)
@@ -554,24 +562,25 @@ Function handleActorMainMenu(Actor akTarget, Int aiOption, Int aiMode = 0)
   EndIf
 EndFunction
 
-Function showExpellList(Actor akTarget, String asArchFilter, String[] aiArchetypeFilter = None)
-EndFunction
 ;Transfer Menu *****************************************************************
-String Function showArchetypesListMenu(Actor akTarget)
-  Int ArchList = SCXSet.JM_BaseArchetypes
-  String Archetype = JMap.nextKey(ArchList)
+String Function showArchetypesListMenu(Actor akTarget, Bool abForceChoice = False)
   UIListMenu LM_ST_Transfer = UIExtensions.GetMenu("UIListMenu", True) as UIListMenu
   Int JA_ArchetypeList = JValue.retain(JArray.object())
   LM_ST_Transfer.AddEntryItem("<<< Return")
   JArray.addStr(JA_ArchetypeList, "Cancel")
-  LM_ST_Transfer.AddEntryItem("All")
-  JArray.addStr(JA_ArchetypeList, "")
+  If !abForceChoice
+    LM_ST_Transfer.AddEntryItem("All")
+    JArray.addStr(JA_ArchetypeList, "")
+  EndIf
+  Int ArchList = SCXSet.JM_BaseArchetypes
+  String Archetype = JMap.nextKey(ArchList)
   While Archetype
     LM_ST_Transfer.AddEntryItem(Archetype)
     JArray.addStr(JA_ArchetypeList, Archetype)
     Archetype = JMap.nextKey(ArchList, Archetype)
   EndWhile
-  Int Option = LM_ST_Transfer.OpenMenu()
+  LM_ST_Transfer.OpenMenu()
+  Int Option = LM_ST_Transfer.GetResultInt()
   If Option >= 0 && Option < JArray.count(JA_ArchetypeList)
     String ReturnValue = JArray.getStr(JA_ArchetypeList, Option)
     JValue.release(JA_ArchetypeList)
@@ -593,7 +602,7 @@ Function showTransferMenu(Actor akTarget = None, String asArchetypeOverride = ""
   EndIf
 
   If !asArchetypeOverride
-    asArchetypeOverride = showArchetypesListMenu(akTarget)
+    asArchetypeOverride = showArchetypesListMenu(akTarget, True)
     If asArchetypeOverride == "Cancel" || !asArchetypeOverride
       Return
     EndIf
@@ -651,18 +660,21 @@ UIListMenu Function buildActorStatsMenu(Actor akTarget, Int aiMode = 0, String a
     If !JValue.isExists(JA__UIE_LibBuildActorStatsMenuPriorityList) || !JValue.isArray(JA__UIE_LibBuildActorStatsMenuPriorityList)
       JA__UIE_LibBuildActorStatsMenuPriorityList = JValue.releaseAndRetain(JA__UIE_LibBuildActorStatsMenuPriorityList, JArray.object())
       Int JI_PriorityList = JValue.retain(JIntMap.object())
-      String LibraryName = JMap.nextKey(JM_MainLibList)
       Int JM_MainLibList = SCXSet.JM_BaseLibraryList
+      String LibraryName = JMap.nextKey(JM_MainLibList)
       While LibraryName
         SCX_BaseLibrary Lib = JMap.getForm(JM_MainLibList, LibraryName) as SCX_BaseLibrary
         If Lib
           Int Priority = Lib.addUIEActorStatsPriority
-          Int JM_PriorityList = JIntMap.getObj(JI_PriorityList, Priority)
-          If !JM_PriorityList
-            JM_PriorityList = JMap.object()
-            JIntMap.setObj(JI_PriorityList, Priority, JM_PriorityList)
+          If Priority
+            Int JM_PriorityList = JIntMap.getObj(JI_PriorityList, Priority)
+            If !JM_PriorityList
+              JM_PriorityList = JMap.object()
+              JIntMap.setObj(JI_PriorityList, Priority, JM_PriorityList)
+            EndIf
+            JMap.setForm(JM_PriorityList, LibraryName, Lib)
+          Else
           EndIf
-          JMap.setForm(JM_PriorityList, LibraryName, Lib)
         EndIf
         LibraryName = JMap.nextKey(JM_MainLibList, LibraryName)
       EndWhile
@@ -694,6 +706,7 @@ UIListMenu Function buildActorStatsMenu(Actor akTarget, Int aiMode = 0, String a
       EndWhile
     EndIf
   EndIf
+  Return UIList
 EndFunction
 
 ;Contents Menu ********************************************************************
@@ -736,7 +749,6 @@ Int JI_UIE_ContentsItemList
 UIListMenu Function buildActorContents(Actor akTarget, Int aiMode = 0, String asArchetypeOverride = "")
   UIListMenu UIList = UIExtensions.GetMenu("UIListMenu", True) as UIListMenu
   Int TargetData = getTargetData(akTarget)
-  Int i
   Int JM_MainArchList = SCXSet.JM_BaseArchetypes
   JI_UIE_ContentsOptionList = JValue.releaseAndRetain(JI_UIE_ContentsOptionList, JIntMap.object())
   JI_UIE_ContentsItemList = JValue.releaseAndRetain(JI_UIE_ContentsItemList, JIntMap.object())
@@ -757,9 +769,10 @@ UIListMenu Function buildActorContents(Actor akTarget, Int aiMode = 0, String as
       If Arch
         Arch.addUIEActorContents(akTarget, UIList, JI_UIE_ContentsItemList, JI_UIE_ContentsOptionList, aiMode)
       EndIf
-      i += 1
+      ArchetypeKey = JMap.nextKey(JM_MainArchList, ArchetypeKey)
     EndWhile
   EndIf
+  Return UIList
 EndFunction
 
 ;Perks Menu ********************************************************************
@@ -944,12 +957,11 @@ Function addMCMActorInformation(SCX_ModConfigMenu MCM, Int JI_Options, Actor akT
   If !aiTargetData
     aiTargetData = SCXLib.getTargetData(akTarget)
   EndIf
-  Note("Adding MCM actor information")
   MCM.AddHeaderOption("Overall Stats")
   MCM.AddEmptyOption()
   Bool DEnable = SCXSet.DebugEnable
-  JIntMap.setStr(JI_Options, MCM.AddTextOption("Total Weight Contained", getActorTotalWeightContained(akTarget, aiTargetData)), "Stats.SCXLibrary.SCXShowTotalContained")
-  JIntMap.setStr(JI_Options, MCM.AddTextOption("Total Weight Overall", genWeightValue(akTarget)), "Stats.SCXLibrary.SCXShowTotalOverrall")
+  JIntMap.setStr(JI_Options, MCM.AddTextOption("Total Weight Contained", getActorTotalWeightContained(akTarget, aiTargetData)), "Stats.SCX_Library.SCXShowTotalContained")
+  JIntMap.setStr(JI_Options, MCM.AddTextOption("Total Weight Overall", genWeightValue(akTarget)), "Stats.SCX_Library.SCXShowTotalOverrall")
 EndFunction
 
 Float Function getActorTotalWeightContained(Actor akTarget, Int aiTargetData = 0)

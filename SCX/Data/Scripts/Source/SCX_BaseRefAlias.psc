@@ -112,7 +112,7 @@ Int Function getTargetData(Actor akTarget, Bool abGenProfile = False)
   Function will generate new actor profile if no data found && abGenProfile == True}
   Form Target = akTarget.GetLeveledActorBase()
   If Target
-    Int Data = JFormDB.findEntry("SCLActorData", Target)
+    Int Data = JFormDB.findEntry("SCX_ActorData", Target)
     If !Data && abGenProfile
       Bool Basic = False
       If akTarget == PlayerRef || akTarget.IsInFaction(SCXSet.PotentialFollowerFaction)
@@ -120,6 +120,7 @@ Int Function getTargetData(Actor akTarget, Bool abGenProfile = False)
       EndIf
       ;Note("No data found for " + nameGet(akTarget))
       Data = SCXLib.generateActorProfile(akTarget, Basic)
+      JFormDB.setEntry("SCX_ActorData", Target, Data)
     EndIf
     Return Data
   Else
@@ -425,10 +426,24 @@ EndFunction
 Float Function sumWeightValues(Int JF_ContentsMap)
   {Sums up the weight of a single contents map}
   If !JValue.empty(JF_ContentsMap)
+    ;Note("Contents map has items in it!")
+    Float Total
+    Form ItemKey = JFormMap.nextKey(JF_ContentsMap)
+    While ItemKey
+      Int JM_ItemEntry = JFormMap.getObj(JF_ContentsMap, ItemKey)
+      Total += JMap.getFlt(JM_ItemEntry, "WeightValue")
+      ItemKey = JFormMap.nextKey(JF_ContentsMap, ItemKey)
+    EndWhile
+    Return Total
+  Else
+    ;Note("Contents map is empty! Returning 0")
+    Return 0
+  EndIf
+  ;/If !JValue.empty(JF_ContentsMap)
     Return JValue.evalLuaFlt(JF_ContentsMap, "return jc.accumulateValues(jobject, function(a,b) return a + b end, '.WeightValue')", -1)
   Else
     Return 0
-  EndIf
+  EndIf/;
 EndFunction
 
 Float Function sumStoredWeightValues(Int JF_ContentsMap, Int[] aiItemTypes)

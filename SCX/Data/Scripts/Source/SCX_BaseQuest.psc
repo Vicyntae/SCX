@@ -46,6 +46,7 @@ Event OnInit()
   Else
     Issue("SCX_Settings wasn't found! Please check SCX Installation", 2, True)
   EndIf
+  _reloadMaintenence()
 EndEvent
 
 Int Function _getSCX_JC_List()
@@ -118,7 +119,7 @@ Int Function getTargetData(Actor akTarget, Bool abGenProfile = False)
   Function will generate new actor profile if no data found && abGenProfile == True}
   Form Target = akTarget.GetLeveledActorBase()
   If Target
-    Int Data = JFormDB.findEntry("SCLActorData", Target)
+    Int Data = JFormDB.findEntry("SCX_ActorData", Target)
     If !Data && abGenProfile
       Bool Basic = False
       If akTarget == PlayerRef || akTarget.IsInFaction(SCXSet.PotentialFollowerFaction)
@@ -126,6 +127,7 @@ Int Function getTargetData(Actor akTarget, Bool abGenProfile = False)
       EndIf
       ;Note("No data found for " + nameGet(akTarget))
       Data = SCXLib.generateActorProfile(akTarget, Basic)
+      JFormDB.setEntry("SCX_ActorData", Target, Data)
     EndIf
     Return Data
   Else

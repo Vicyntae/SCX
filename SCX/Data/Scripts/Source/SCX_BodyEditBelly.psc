@@ -19,4 +19,17 @@ Function editBodyPart(Actor akTarget, Float afValue, String asMethodOverride = "
   If !akTarget.HasSpell(SCX_BodyEditBellySpell)
     akTarget.AddSpell(SCX_BodyEditBellySpell, False)
   EndIf
+  Int Handle = ModEvent.Create("SCX_BodyEditBellySpellMethodUpdate")
+  ModEvent.send(Handle)
+EndFunction
+
+Function setMenuOptions(SCX_ModConfigMenu MCM, String asValue, Int aiOption, Int aiIndex)
+  If asValue == "Methods"
+    CurrentMethod = Methods[aiIndex]
+    MCM.SetMenuOptionValue(aiOption, CurrentMethod)
+    Int Handle = ModEvent.Create("SCX_BodyEditBellySpellMethodUpdate")
+    ModEvent.send(Handle)
+  Else
+    Parent.setMenuOptions(MCM, asValue, aiOption, aiIndex)
+  EndIf
 EndFunction

@@ -2,7 +2,8 @@ ScriptName SCX_MonitorPlayer Extends SCX_Monitor
 
 Function Setup()
   Parent.Setup()
-  RegisterForModEvent("SCXMenuKeyChange", "OnActionKeyChange")
+  ;EnableDebugMessages = True
+  RegisterForModEvent("SCX_KeyBindChange", "OnKeyChange")
   RegisterForKey(SCXSet.MenuKey)
   RegisterForKey(SCXSet.StatusKey)
   UnregisterForMenu("Console")
@@ -11,12 +12,12 @@ EndFunction
 
 Function reloadMaintenence()
   Parent.reloadMaintenence()
-  RegisterForModEvent("SCXMenuKeyChange", "OnActionKeyChange")
+  RegisterForModEvent("SCX_KeyBindChange", "OnKeyChange")
   UnregisterForMenu("Console")
   RegisterForMenu("Console")
 EndFunction
 
-Event OnActionKeyChange()
+Event OnKeyChange()
   Notice("Action key changed")
   UnregisterForAllKeys()
   RegisterForKey(SCXSet.MenuKey)
@@ -70,14 +71,14 @@ Event OnKeyDown(int keyCode)
         Notice("Sending menu open event for " + nameGet(MyActor))
         SCXLib.showActorMainMenu(MyActor)
       Else
-        SCXLib.showTransferMenu(MyActor)
+        ;SCXLib.showTransferMenu(MyActor)
       EndIf
     ElseIf CurrentRef as Actor
       If SCXSet.UIExtensionsInstalled
         Notice("Sending menu open event for " + nameGet(CurrentRef))
         SCXLib.showActorMainMenu(CurrentRef as Actor)
       Else
-        SCXLib.showTransferMenu(MyActor)
+        ;SCXLib.showTransferMenu(CurrentRef as Actor)
       EndIf
     EndIf
     UnlockEX()

@@ -80,8 +80,7 @@ Int Property MenuKey
   Int Function Get()
     Int iKey = SCX_SET_MenuKey.GetValueInt()
     If _MenuKey != iKey  ;In case someone changes the global when we aren't looking
-      Int KeyModChange = ModEvent.Create("SCXMenuKeyChange")
-      ModEvent.PushInt(KeyModChange, iKey)
+      Int KeyModChange = ModEvent.Create("SCX_KeyBindChange")
       ModEvent.Send(KeyModChange)
       _MenuKey = iKey
     EndIf
@@ -90,8 +89,7 @@ Int Property MenuKey
   Function Set(Int a_val)
     SCX_SET_MenuKey.SetValueInt(a_val)
     _MenuKey = a_val
-    Int KeyModChange = ModEvent.Create("SCXMenuKeyChange")
-    ModEvent.PushInt(KeyModChange, a_val)
+    Int KeyModChange = ModEvent.Create("SCX_KeyBindChange")
     ModEvent.Send(KeyModChange)
   EndFunction
 EndProperty
@@ -102,8 +100,7 @@ Int Property StatusKey
   Int Function Get()
     Int iKey = SCX_SET_StatusKey.GetValueInt()
     If _StatusKey != iKey  ;In case someone changes the global when we aren't looking
-      Int KeyModChange = ModEvent.Create("SCXMenuKeyChange")
-      ModEvent.PushInt(KeyModChange, iKey)
+      Int KeyModChange = ModEvent.Create("SCX_KeyBindChange")
       ModEvent.Send(KeyModChange)
       _StatusKey = iKey
     EndIf
@@ -112,8 +109,7 @@ Int Property StatusKey
   Function Set(Int a_val)
     SCX_SET_StatusKey.SetValueInt(a_val)
     _StatusKey = a_val
-    Int KeyModChange = ModEvent.Create("SCXMenuKeyChange")
-    ModEvent.PushInt(KeyModChange, a_val)
+    Int KeyModChange = ModEvent.Create("SCX_KeyBindChange")
     ModEvent.Send(KeyModChange)
   EndFunction
 EndProperty
@@ -159,7 +155,12 @@ Float Property UpdateDelay
 EndProperty
 
 ;Mod Checks --------------------------------------------------------------------
-Bool Property UIExtensionsInstalled Auto
+Bool Property UIExtensionsInstalled
+  Bool Function Get()
+    Return SCX_Library.isModInstalled("UIExtensions.esp")
+  EndFunction
+EndProperty
+
 Bool Property HideUIEWarning Auto
 
 Bool Property NiOverrideInstalled Auto
@@ -169,7 +170,19 @@ Bool Property FNISInstalled Auto
 
 Bool Property SLIF_Installed Auto
 
-Bool Property SCX_Active Auto
+GlobalVariable Property SCX_SET_Enabled Auto  ;Default 0 (False)
+Bool Property SCX_Active
+  Bool Function Get()
+    Return SCX_SET_Enabled.GetValueInt() as Bool
+  EndFunction
+  Function Set(Bool a_value)
+    If a_value
+      SCX_SET_Enabled.SetValueInt(1)
+    Else
+      SCX_SET_Enabled.SetValueInt(0)
+    EndIf
+  EndFunction
+EndProperty
 
 FormList Property SCX_ItemFormlistSearch Auto
 FormList Property SCX_ItemKeywordSearch Auto
@@ -191,32 +204,26 @@ Form[] Property LoadedActors
 EndProperty
 
 Container Property SCX_TransferContainerBase Auto
-ObjectReference _TransferChest01
+ObjectReference Property _TransferChest01 Auto
 ObjectReference Property SCX_TransferChest01
   ObjectReference Function Get()
     If !_TransferChest01
-      If SCX_Library.isModInstalled("Skyrim.esm")
-        ObjectReference XMarkerSpot = Game.GetFormFromFile(0x00032AFB, "Skyrim.esm") as ObjectReference
-        _TransferChest01 = XMarkerSpot.PlaceAtMe(SCX_TransferContainerBase, 1, True, False)
-      ;ElseIf
-      EndIf
+      Return PlayerRef.PlaceAtMe(SCX_TransferContainerBase, 1, False, False)
+    Else
+      Return _TransferChest01
     EndIf
-    Return _TransferChest01
   EndFunction
 EndProperty
 
 Container Property SCX_TransferContainer2Base Auto
-ObjectReference _TransferChest02
+ObjectReference Property _TransferChest02 Auto
 ObjectReference Property SCX_TransferChest02
   ObjectReference Function Get()
     If !_TransferChest02
-      If SCX_Library.isModInstalled("Skyrim.esm")
-        ObjectReference XMarkerSpot = Game.GetFormFromFile(0x00032AFB, "Skyrim.esm") as ObjectReference
-        _TransferChest02 = XMarkerSpot.PlaceAtMe(SCX_TransferContainer2Base, 1, True, False)
-      ;ElseIf
-      EndIf
+      Return PlayerRef.PlaceAtMe(SCX_TransferContainer2Base, 1, False, False)
+    Else
+      Return _TransferChest02
     EndIf
-    Return _TransferChest02
   EndFunction
 EndProperty
 

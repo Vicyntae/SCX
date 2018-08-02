@@ -60,17 +60,11 @@ EndFunction
 Function addUIEActorContents(Actor akTarget, UIListMenu UIList, Int JI_ItemList, Int JI_OptionList, Int aiMode = 0)
   Int JF_Contents = JValue.retain(getAllContents(akTarget))
   Form ItemKey = JFormMap.nextKey(JF_Contents)
-  ReferenceAlias[] ItemBases = New ReferenceAlias[128]
   While ItemKey
     Int JM_ItemEntry = JFormMap.getObj(JF_Contents, ItemKey)
     If JValue.isMap(JM_ItemEntry)
       Int ItemType = JMap.getInt(JM_ItemEntry, "ItemType")
-      SCX_BaseItemType Base = ItemBases[ItemType] as SCX_BaseItemType
-      If Base == None
-        Base = SCXLib.getSCX_BaseAlias(SCXSet.JI_BaseItemTypes, aiBaseID = ItemType) as SCX_BaseItemType
-        ItemBases[ItemType] = Base
-      EndIf
-      String ItemDesc = Base.getItemListDesc(ItemKey, JM_ItemEntry)
+      String ItemDesc = getItemListDesc(ItemKey, JM_ItemEntry)
       Int CurrentEntry = UIList.AddEntryItem(ItemDesc, entryHasChildren = True)
       JIntMap.setForm(JI_ItemList, CurrentEntry, ItemKey)
       String ArchName = GetName()
@@ -93,25 +87,25 @@ EndFunction
 
 Int Function getAllContents(Actor akTarget, Int aiTargetData = 0)
   {Gathers form-value pairs from all contents types and returns them in new JFormMap}
-  If JValue.isExists(aiTargetData)
-    aiTargetData = SCXLib.getTargetData(akTarget)
+  If !JValue.isMap(aiTargetData)
+    aiTargetData = getTargetData(akTarget)
   EndIf
   Int JF_CompiledContents = JValue.retain(JFormMap.object())
   Int j = 0
   Int NumItemTypes = ItemTypes.length
   While j < NumItemTypes
-    Int JF_Contents = SCXLib.getContents(akTarget, ItemTypes[j], aiTargetData)
+    Int JF_Contents = getContents(akTarget, ItemTypes[j], aiTargetData)
     JFormMap.addPairs(JF_CompiledContents, JF_Contents, True)
     j += 1
   EndWhile
   j = 0
   NumItemTypes = ItemStoredTypes.length
   While j < NumItemTypes
-    Int JF_Contents = SCXLib.getContents(akTarget, ItemStoredTypes[j], aiTargetData)
+    Int JF_Contents = getContents(akTarget, ItemStoredTypes[j], aiTargetData)
     Form FormKey = JFormMap.nextKey(JF_Contents)
     While FormKey
       Int JM_ItemEntry = JFormMap.getObj(JF_Contents, FormKey)
-      If ItemTypes.Find(JMap.getInt(JM_ItemEntry, "StoredItemType"))
+      If ItemTypes.Find(JMap.getInt(JM_ItemEntry, "StoredItemType")) != -1
         JFormMap.setObj(JF_CompiledContents, FormKey, JM_ItemEntry)
       Endif
       FormKey = JFormMap.nextKey(JF_Contents)

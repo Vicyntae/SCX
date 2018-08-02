@@ -4,11 +4,19 @@ SCLSettings Property SCLSet Auto
 Container Property SCL_VomitBase Auto
 
 Function Setup()
+  EnableDebugMessages = True
   RegisterForModEvent("SCLProcessEvent", "OnDigestCall")
 EndFunction
 
 Function reloadMaintenence()
   RegisterForModEvent("SCLProcessEvent", "OnDigestCall")
+EndFunction
+
+Float Function updateArchetype(Actor akTarget, Int aiTargetData = 0)
+  Float fReturn = Parent.updateArchetype(akTarget, aiTargetData)
+  SCLib.Belly.updateBodyPart(akTarget)
+  ;Note("Updating stomach archetype: Fullness = " + fReturn)
+  Return fReturn
 EndFunction
 
 Function removeAllActorItems(Actor akTarget, Bool ReturnItems = False);Rewrite of VomitAll function
@@ -329,12 +337,7 @@ Function addUIEActorContents(Actor akTarget, UIListMenu UIList, Int JI_ItemList,
     Int JM_ItemEntry = JFormMap.getObj(JF_Contents, ItemKey)
     If JValue.isMap(JM_ItemEntry)
       Int ItemType = JMap.getInt(JM_ItemEntry, "ItemType")
-      SCX_BaseItemType Base = ItemBases[ItemType] as SCX_BaseItemType
-      If Base == None
-        Base = SCXLib.getSCX_BaseAlias(SCXSet.JI_BaseItemTypes, aiBaseID = ItemType) as SCX_BaseItemType
-        ItemBases[ItemType] = Base
-      EndIf
-      String ItemDesc = Base.getItemListDesc(ItemKey, JM_ItemEntry)
+      String ItemDesc = getItemListDesc(ItemKey, JM_ItemEntry)
       Int CurrentEntry = UIList.AddEntryItem(ItemDesc, entryHasChildren = True)
       JIntMap.setForm(JI_ItemList, CurrentEntry, ItemKey)
       String ArchName = GetName()
@@ -407,9 +410,9 @@ EndFunction
 
 Bool Function checkTransferItem(Actor akTarget, ObjectReference akItem, Form akBaseItem, Int aiItemCount = 1)
   Float WeightValue = SCXLib.genWeightValue(akBaseItem)
-  Float CurrentWeight = JMap.getFlt(getTargetData(akTarget), "SCLFullness")
+  Float CurrentWeight = JMap.getFlt(getTargetData(akTarget), "SCLStomachFullness")
   Float MaxWeight = SCLib.getMaxCap(akTarget)
-  If MaxWeight >= CurrentWeight + (WeightValue * aiItemCount)
+  If MaxWeight >= (CurrentWeight + (WeightValue * aiItemCount))
     Return True
   Else
     Return False
@@ -450,24 +453,27 @@ Event OnDigestCall(Form akForm, Float afTimePassed)
 EndEvent
 
 Function breakdownItems(Actor akTarget, Float afTimePassed, Int aiTargetData = 0)
+  Note("Digest item call recieved! Target = " + nameGet(akTarget) + ", Time Passed = " + afTimePassed)
   Int TargetData
   If !JValue.isMap(aiTargetData)
     TargetData = getTargetData(akTarget)
   Else
     TargetData = aiTargetData
   EndIf
+  JMap.setInt(TargetData, "SCLNowDigesting", 1)
   Int ItemList = getContents(akTarget, 1, TargetData)
   If !JValue.empty(ItemList)
-    ;Note("Starting digestion for " + MyActor.GetLeveledActorBase().GetName())
+    Note("ItemList 1 has items in it!")
     Float DigestRate = JMap.getFlt(TargetData, "SCLDigestRate")
     If DigestRate <= 0
-      Notice("Digest Rate is zero! Canceling digestion.")
+      Note("Digest Rate is zero! Canceling digestion.")
+      JMap.setInt(TargetData, "SCLNowDigesting", 0)
       Return
     EndIf
     Int JA_Remove = JValue.retain(JArray.object())
     Int NumOfItems = JFormMap.count(ItemList)
     Float IndvRemoveAmount = (DigestRate * afTimePassed * SCLSet.GlobalDigestMulti) / NumOfItems
-    ;Notice("# Items = " + NumOfItems + ", Remove Amount/Item = " + IndvRemoveAmount)
+    Note("# Items = " + NumOfItems + ", Remove Amount/Item = " + IndvRemoveAmount)
     Float Fullness
     Float TotalDigested
     Form ItemKey = JFormMap.nextKey(ItemList)
@@ -480,7 +486,7 @@ Function breakdownItems(Actor akTarget, Float afTimePassed, Int aiTargetData = 0
           If ItemKey as SCX_Bundle
             Int JM_DataEntry = SCXLib.getItemDatabaseEntry((ItemKey as SCX_Bundle).ItemForm)
             Float RemoveAmount = IndvRemoveAmount * JMap.getFlt(JM_DataEntry, "Durablity", 1)
-            ;Note("SCX_Bundle found! Remove Amount = " + RemoveAmount)
+            Note("SCX_Bundle found! Remove Amount = " + RemoveAmount)
             Float DigestedAmount = RemoveAmount
             Bool Done ;If we finish off the item
             Float Indv = JMap.getFlt(JM_ItemEntry, "IndvWeightValue")
@@ -489,42 +495,36 @@ Function breakdownItems(Actor akTarget, Float afTimePassed, Int aiTargetData = 0
             While RemoveAmount > 0 && !Done
               If Active > RemoveAmount
                 Active -= RemoveAmount
-                ;Note("Ran out of RemoveAmount! Resetting WeightValue")
+                Note("Ran out of RemoveAmount! Resetting WeightValue")
                 RemoveAmount = 0  ;didn't manage to finish the stack before we ran out
                 JMap.setFlt(JM_ItemEntry, "ActiveWeightValue", Active)
                 (ItemKey as SCX_Bundle).ItemNum = ItemNum
                 Float DValue = Active + (Indv * (ItemNum - 1))
                 JMap.setFlt(JM_ItemEntry, "WeightValue", DValue)
-
-                ;Float DValue = SCLib.updateDValue(JM_ItemEntry)
-
-
                 Fullness += DValue
               Else
                 RemoveAmount -= Active
-                ;Debug.notification("Remove Amount = " + RemoveAmount)
+                Note("Remove Amount = " + RemoveAmount)
                 sendDigestItemFinishEvent(akTarget, (ItemKey as SCX_Bundle).ItemForm, Indv)
                 JMap.setInt(TargetData, "SCLNumItemsDigested", JMap.getInt(TargetData, "SCLNumItemsDigested") + 1)
                 Active = 0
                 If ItemNum > 1  ;If there's more than 1 item left
-                  ;Debug.notification("Item Number = " + ItemNum + ", resetting Active value")
+                  Note("Item Number = " + ItemNum + ", resetting Active value")
                   ItemNum -= 1 ;Remove 1
                   Active = Indv ;Reset the active amount
-                  ;Debug.notification("Active = " + Active)
-                  ;Notice("More items found! Resetting active amount")
+                  Note("Active = " + Active)
                 Else
-                  ;Debug.notification("Items finished.")
+                  Note("Items finished.")
                   Done = True ;That was the last item
                   JArray.addForm(JA_Remove, ItemKey)
                   ;Don't have to reset dvalues, we're going to delete this
-                  ;Notice("No more items left!")
                 EndIf
               EndIf
             EndWhile
             DigestedAmount -= RemoveAmount  ;If there's anything left of the remove amount, subtract it from the digested amount
             TotalDigested += DigestedAmount
           Else
-            ;Note("Regular reference found!")
+            Note("Regular reference found!")
             Float Active = JMap.getFlt(JM_ItemEntry, "ActiveWeightValue")
             Float DigestedAmount = Active ;If it finishes the item, then it adds the active amount
             Int JM_DataEntry = SCXLib.getItemDatabaseEntry((ItemKey as SCX_Bundle).ItemForm)
@@ -535,7 +535,7 @@ Function breakdownItems(Actor akTarget, Float afTimePassed, Int aiTargetData = 0
               Fullness += Active
               JMap.setFlt(JM_ItemEntry, "ActiveWeightValue", Active)
               JMap.setFlt(JM_ItemEntry, "WeightValue", Active)
-              ;Notice("Active amount = " + Active + ", resetting digest value")
+              Note("Active amount = " + Active + ", resetting digest value")
               DigestedAmount -= RemoveAmount  ;If there's anything left of the remove amount, subtract it from the digested amount
               If ItemKey as Actor
                 (ItemKey as Actor).DamageActorValue("Health", RemoveAmount)
@@ -543,7 +543,7 @@ Function breakdownItems(Actor akTarget, Float afTimePassed, Int aiTargetData = 0
             Else
               RemoveAmount -= Active ;Removed everything from the item
               Active = 0
-              ;Notice("Active amount = " + Active + ", removing item")
+              Note("Active amount = " + Active + ", removing item")
               JArray.addForm(JA_Remove, ItemKey)
               sendDigestItemFinishEvent(akTarget, ItemKey, JMap.getFlt(JM_ItemEntry, "IndvWeightValue"))
               JMap.setInt(TargetData, "SCLNumItemsDigested", JMap.getInt(TargetData, "SCLNumItemsDigested") + 1)
@@ -557,9 +557,9 @@ Function breakdownItems(Actor akTarget, Float afTimePassed, Int aiTargetData = 0
       Utility.WaitMenuMode(0.5)
       ItemKey = JFormMap.nextKey(ItemList, ItemKey)
     EndWhile
-    ;Notice("Done processing items, setting final stats:")
+    Note("Done processing items, setting final stats:")
     ;Maybe just run updateFullnessEX after digestion.
-    ;JMap.setFlt(TargetData, "ContentsFullness1", Fullness)
+    JMap.setFlt(TargetData, "ContentsFullness1", Fullness)
     JMap.setFlt(TargetData, "STTotalDigestedFood", JMap.getFlt(TargetData, "STTotalDigestedFood") + TotalDigested)
     JMap.setFlt(TargetData, "STLastDigestAmount", TotalDigested)
     JF_eraseKeys(ItemList, JA_Remove)
@@ -570,6 +570,7 @@ Function breakdownItems(Actor akTarget, Float afTimePassed, Int aiTargetData = 0
     JMap.setFlt(TargetData, "STLastDigestAmount", 0)
     sendDigestFinishEvent(akTarget, 0)
   EndIf
+  JMap.setInt(TargetData, "SCLNowDigesting", 0)
   updateArchetype(akTarget, TargetData)
 EndFunction
 
@@ -593,11 +594,11 @@ Function sendDigestFinishEvent(Actor akEater, Float afDigestedAmount)
 EndFunction
 
 Int Function addToContents(Actor akTarget, ObjectReference akReference = None, Form akBaseObject = None, Int aiItemType, Int aiStoredItemType = 0, Float afWeightValueOverride = -1.0, Int aiItemCount = 1, Bool abMoveNow = True)
+  Notice("Adding to contents: Actor=" + nameGet(akTarget) + ",Item=" + nameGet(akBaseObject) + ",ItemType=" + aiItemType + ",StoredItemType=" + aiStoredItemType)
   Int JF_Contents = getContents(akTarget, aiItemType)
   Int JM_ItemEntry
   If akReference as SCX_Bundle
     Form BundleItem = (akReference as SCX_Bundle).ItemForm
-    Note("Adding item " + nameGet(BundleItem) + " to actor " + nameGet(akTarget) + " as type 1")
     JM_ItemEntry = findBundleEntry(JF_Contents, BundleItem)
     If !JM_ItemEntry
       JM_ItemEntry = JMap.object()
@@ -622,7 +623,6 @@ Int Function addToContents(Actor akTarget, ObjectReference akReference = None, F
       akReference.Delete()
     EndIf
   ElseIf akReference
-    Note("Adding item " + nameGet(akReference) + " to actor " + nameGet(akTarget) + " as type 1")
     Float Weight
     If afWeightValueOverride < 0
       Weight = SCXLib.genWeightValue(akReference.GetBaseObject())
@@ -642,12 +642,10 @@ Int Function addToContents(Actor akTarget, ObjectReference akReference = None, F
       akReference.MoveTo(SCLSet.SCL_HoldingCell)
     EndIf
   Else
-    Note("Adding item " + nameGet(akBaseObject) + " to actor " + nameGet(akTarget) + " as type 1")
     JM_ItemEntry = findBundleEntry(JF_Contents, akBaseObject)
     If !JM_ItemEntry
       JM_ItemEntry = JMap.object()
       SCX_Bundle ItemBundle = SCLSet.SCL_HoldingCell.PlaceAtMe(SCXSet.SCX_BundleBase) as SCX_Bundle
-
       Float Weight = SCXLib.genWeightValue(akBaseObject)
       JMap.setFlt(JM_ItemEntry, "WeightValue", Weight * aiItemCount)
       JMap.setFlt(JM_ItemEntry, "ActiveWeightValue", Weight)
@@ -663,7 +661,6 @@ Int Function addToContents(Actor akTarget, ObjectReference akReference = None, F
       ItemBundle.ItemNum = aiItemCount
       ItemBundle.Owner = akTarget
       ItemBundle.ItemEntry = JM_ItemEntry
-      JFormMap.setObj(JF_Contents, ItemBundle, JM_ItemEntry)
     Else
       SCX_Bundle ItemBundle = JMap.getForm(JM_ItemEntry, "ItemReference") as SCX_Bundle
       ItemBundle.ItemNum += aiItemCount

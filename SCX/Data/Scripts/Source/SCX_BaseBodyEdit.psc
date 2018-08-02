@@ -17,6 +17,7 @@ Float Property Multiplier = 1.0 Auto
 
 Float Property Increment = 0.5 Auto
 Bool Property EnableIncrement = True Auto
+Float Property IncrementRate = 2.0 Auto
 
 Float Property Minimum = 1.0 Auto
 Float Property Maximum = 100.0 Auto
@@ -42,7 +43,7 @@ EndFunction
 Function updateBodyPart(Actor akTarget)
   Int TargetData = SCXLib.getTargetData(akTarget)
   Int i = CollectKeys.length
-  Float Total
+  Float Total = 1
   While i
     i -= 1
     Total += JMap.getFlt(TargetData, CollectKeys[i])
@@ -54,6 +55,12 @@ Int Function findEquipTier(Int aiSet, Float fValue)
   {Binary Search Algorithm
   See https://en.wikipedia.org/wiki/Binary_search_algorithm}
   Int JI_EquipSetList = EquipmentList[aiSet]
+  Int NumArmors = JIntMap.count(JI_EquipSetList)
+  If NumArmors == 1
+    Return JIntMap.getNthKey(JI_EquipSetList, 0)
+  ElseIf NumArmors == 0
+    Return 0
+  EndIf
   Int L = 0
   Int R = JIntMap.count(JI_EquipSetList) - 1
   While L < R

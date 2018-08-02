@@ -3,14 +3,12 @@ ScriptName SCX_MonitorCycler Extends Quest
 Quest Property SCX_MonitorFinderQuest Auto
 
 Event OnInit()
-  Debug.Notification("Starting up monitor cycle")
   RegisterForMenu("Sleep/Wait Menu")
   RegisterForSingleUpdate(1)
 EndEvent
 
 Bool Function Start()
   Bool bReturn = Parent.Start()
-  Debug.Notification("Starting up monitor cycle")
   RegisterForMenu("Sleep/Wait Menu")
   RegisterForSingleUpdate(1)
   Return bReturn

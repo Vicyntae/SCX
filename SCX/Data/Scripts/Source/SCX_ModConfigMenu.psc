@@ -23,12 +23,12 @@ Actor Property SelectedActor
 EndProperty
 
 Event OnConfigInit()
-  Pages = new String[4]
+  Pages = new String[5]
   Pages[0] = "$SCXMCMActorInformationPage"
   Pages[1] = "$SCXMCMActorPerksPage"
   Pages[2] = "$SCXMCMActorRecordsPage"
   Pages[3] = "$SCXMCMInflationSettingsPage"
-  Pages[4] = "$CCXMCMOtherSettingsPage"
+  Pages[4] = "$SCXMCMOtherSettingsPage"
 EndEvent
 
 Int Property JI_OptionIndexes Auto
@@ -42,7 +42,7 @@ Event OnPageReset(string a_page)
     If SelectedActor
       addStatOptions()
     Else
-      AddTextOptionST("ChooseActorMessage_T", "$Choose an actor.", "")
+      AddTextOptionST("ChooseActorMessage_T", "$SCXMCMChooseActorMessage", "")
     EndIf
   ElseIf a_page == "$SCXMCMActorPerksPage"
     SetCursorFillMode(LEFT_TO_RIGHT)
@@ -51,7 +51,7 @@ Event OnPageReset(string a_page)
     If SelectedActor
       addPerkOptions()
     Else
-      AddTextOptionST("ChooseActorMessage_T", "$Choose an actor.", "")
+      AddTextOptionST("ChooseActorMessage_T", "$SCXMCMChooseActorMessage", "")
     EndIf
   ElseIf a_page == "$SCXMCMActorRecordsPage"
     SetCursorFillMode(LEFT_TO_RIGHT)
@@ -60,12 +60,18 @@ Event OnPageReset(string a_page)
     If SelectedActor
       addRecordsOptions()
     Else
-      AddTextOptionST("ChooseActorMessage_T", "$Choose an actor.", "")
+      AddTextOptionST("ChooseActorMessage_T", "$SCXMCMChooseActorMessage", "")
     EndIf
   ElseIf a_page == "$SCXMCMInflationSettingsPage"
     SetCursorFillMode(LEFT_TO_RIGHT)
     addBodyEditOptions()
-  ElseIf a_page == "SCXMCMOtherSettingsPage"
+  ElseIf a_page == "$SCXMCMOtherSettingsPage"
+    SetCursorFillMode(LEFT_TO_RIGHT)
+    AddKeyMapOptionST("MenuKeyPick_KM", "$SCXMCMMenuKeyOption_KM", SCXSet.MenuKey)
+    AddKeyMapOptionST("StatusKeyPick_KM", "$SCXMCMStatusKeyOption_KM", SCXSet.MenuKey)
+    AddToggleOptionST("DebugEnable_TOG", "$SCXMCMDebugEnableOption_TOG", SCXSet.DebugEnable)
+
+
   EndIf
 EndEvent
 
@@ -109,12 +115,10 @@ Int JA_LibraryPriorityList
 Function addStatOptions()
   Int JM_MainLibList = SCXSet.JM_BaseLibraryList
   String LibraryName = JMap.nextKey(JM_MainLibList)
-  AddEmptyOption()
   If !JValue.isArray(JA_LibraryPriorityList)
     JA_LibraryPriorityList = JValue.releaseAndRetain(JA_LibraryPriorityList, JArray.object())
     Int JI_PriorityList = JValue.retain(JIntMap.object())
     While LibraryName
-      AddEmptyOption()
       SCX_BaseLibrary Lib = JMap.getForm(JM_MainLibList, LibraryName) as SCX_BaseLibrary
       If Lib
         Int Priority = Lib.addMCMActorInformationPriority
@@ -376,6 +380,78 @@ Event OnOptionHighlight(int a_option)
     PerkBase.setHighlight(Self, KeyCodes[2], KeyCodes[3] as Int, a_option)
   EndIf
 EndEvent
+
+State MenuKeyPick_KM
+	Event OnKeyMapChangeST(int a_keyCode, string a_conflictControl, string a_conflictName)
+		Bool Continue = True
+		If a_conflictControl != ""
+			String msg
+			If a_conflictName != ""
+				msg = a_conflictControl + ": This key is already registered to " + a_conflictName + ". Are sure you want to continue?"
+			Else
+				msg = a_conflictControl + ": This key is already registered. Are you sure you want to continue?"
+			EndIf
+			Continue = ShowMessage(msg, true, "Yes", "No")
+		EndIf
+		If Continue
+			SCXSet.MenuKey = a_keyCode
+			SetKeyMapOptionValueST(a_keyCode)
+		EndIf
+	EndEvent
+
+  Event OnDefaultST()
+    SCXSet.MenuKey = -1
+    SetKeyMapOptionValueST(-1)
+  EndEvent
+
+  Event OnHighlightST()
+    SetInfoText("$SCXMCMMenuKeyInfo")
+  EndEvent
+EndState
+
+State StatusKeyPick_KM
+	Event OnKeyMapChangeST(int a_keyCode, string a_conflictControl, string a_conflictName)
+		Bool Continue = True
+		If a_conflictControl != ""
+			String msg
+			If a_conflictName != ""
+				msg = a_conflictControl + ": This key is already registered to " + a_conflictName + ". Are sure you want to continue?"
+			Else
+				msg = a_conflictControl + ": This key is already registered. Are you sure you want to continue?"
+			EndIf
+			Continue = ShowMessage(msg, true, "Yes", "No")
+		EndIf
+		If Continue
+			SCXSet.StatusKey = a_keyCode
+			SetKeyMapOptionValueST(a_keyCode)
+		EndIf
+	EndEvent
+
+  Event OnDefaultST()
+    SCXSet.StatusKey = -1
+    SetKeyMapOptionValueST(-1)
+  EndEvent
+
+  Event OnHighlightST()
+    SetInfoText("$SCXMCMStatusKeyInfo")
+  EndEvent
+EndState
+
+State DebugEnable_TOG
+	Event OnSelectST()
+		SCXSet.DebugEnable = !SCXSet.DebugEnable
+    ForcePageReset()
+	EndEvent
+
+	Event OnDefaultST()
+    SCXSet.DebugEnable = False
+    ForcePageReset()
+	EndEvent
+
+	Event OnHighlightST()
+		SetInfoText("$SCXMCMDebugEnableInfo")
+	EndEvent
+EndState
 
 Bool Property SCXResetted Auto
 Event OnGameReload()
