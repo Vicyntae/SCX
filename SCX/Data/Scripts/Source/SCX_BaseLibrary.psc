@@ -117,7 +117,7 @@ EndFunction
 Bool Function handleUIEStatFromList(Actor akTarget, String asValue)
 EndFunction
 
-Function handleActorExtraction(Actor akSource, Actor akTarget, Int aiItemType, ObjectReference akPosition)
+Function handleActorExtraction(Actor akSource, Actor akTarget, String asArch, String asType, ObjectReference akPosition)
 EndFunction
 
 ;*******************************************************************************

@@ -20,17 +20,19 @@ Float Function updateArchetype(Actor akTarget, Int aiTargetData = 0)
 EndFunction
 
 Function removeAllActorItems(Actor akTarget, Bool ReturnItems = False);Rewrite of VomitAll function
+  Int TargetData = getTargetData(akTarget)
   ObjectReference VomitContainer = performRemove(akTarget, False)
 
   Int i = ItemTypes.Length
+  String sKey = _getStrKey()
   While i
     i -= 1
-    Int JF_Contents = getContents(akTarget, ItemTypes[i])
+    Int JF_Contents = getContents(akTarget, sKey, ItemTypes[i], TargetData)
     Form ItemKey = JFormMap.nextKey(JF_Contents)
     While ItemKey
       If ItemKey as Actor ;Always return actors
-        SCXLib.extractActor(akTarget, ItemKey as Actor, ItemTypes[i], VomitContainer)
-      ElseIf ItemKey as ObjectReference && ((ReturnItems && ItemTypes[i] == 1) || ItemTypes[i] == 2 )
+        SCXLib.extractActor(akTarget, ItemKey as Actor, sKey, ItemTypes[i], VomitContainer)
+      ElseIf ItemKey as ObjectReference && ((ReturnItems && ItemTypes[i] == "Breakdown") || ItemTypes[i] == "Stored")
         If ItemKey as SCX_Bundle ;Do we need to delete the SCL Bundle? or can we just move it into the container and erase it after it adds its contents?
            ;VomitContainer.AddItem(ItemKey as SCX_Bundle, 1, False)
           VomitContainer.AddItem((ItemKey as SCX_Bundle).ItemForm, (ItemKey as SCX_Bundle).ItemNum, False)
@@ -49,14 +51,15 @@ Function removeAllActorItems(Actor akTarget, Bool ReturnItems = False);Rewrite o
   While i
     i -= 1
     JA_Remove = JValue.releaseAndRetain(JA_Remove, JArray.object())
-    Int JF_Contents = getContents(akTarget, ItemStoredTypes[i])
+    String[] ArchKeys = StringUtil.Split(ItemStoredTypes[i], ".")
+    Int JF_Contents = getContents(akTarget, ArchKeys[0], ArchKeys[1], TargetData)
     Form ItemKey = JFormMap.nextKey(JF_Contents)
     While ItemKey
       Int JM_ItemEntry = JFormMap.getObj(JF_Contents, ItemKey)
-      Int Stored = JMap.getInt(JM_ItemEntry, "StoredItemType")
-      If ItemTypes.find(Stored) != -1
+      String[] StoredKeys = StringUtil.Split(JMap.getStr(JM_ItemEntry, "StoredItemType"), ".")
+      If StoredKeys[0] == sKey && ItemTypes.find(StoredKeys[1]) != -1
         If ItemKey as Actor ;Always return actors
-          SCXLib.extractActor(akTarget, ItemKey as Actor, ItemStoredTypes[i], VomitContainer)
+          SCXLib.extractActor(akTarget, ItemKey as Actor, StoredKeys[0], StoredKeys[1], VomitContainer)
         ElseIf ItemKey as ObjectReference  ;since we don't know what these are, always return them
           If ItemKey as SCX_Bundle ;Do we need to delete the SCL Bundle? or can we just move it into the container and erase it after it adds its contents?
             ;VomitContainer.AddItem(ItemKey as SCX_Bundle, 1, False)
@@ -90,10 +93,12 @@ Function removeAmountActorItems(Actor akTarget, Float afRemoveAmount, Float afSt
   {Might not remove exactly the right amount
   Stored items removed will not count towards this}
   Notice("vomitAmount beginning for " + nameGet(akTarget))
+  Int TargetData = getTargetData(akTarget)
+  String sKey = _getStrKey()
   ObjectReference VomitContainer = performRemove(akTarget, False)
 
   ;Remove part of afRemoveAmount from each entry
-  Int JF_DigestContents = getContents(akTarget, 1)
+  Int JF_DigestContents = getContents(akTarget, sKey, "Breakdown", TargetData)
   Int JA_Remove = JValue.retain(JArray.object())
   Int NumOfItems = JFormMap.count(JF_DigestContents)
   Float IndvRemoveAmount = afRemoveAmount / NumOfItems
@@ -159,7 +164,7 @@ Function removeAmountActorItems(Actor akTarget, Float afRemoveAmount, Float afSt
   ;Randomly remove stored items
   If afStoredRemoveChance > 0
     JA_Remove = JValue.retain(JArray.object())
-    Int JF_StoredContents = getContents(akTarget, 2)
+    Int JF_StoredContents = getContents(akTarget, sKey, "Stored", TargetData)
     ItemKey = JFormMap.nextKey(JF_StoredContents)
     While ItemKey
       Int JM_ItemEntry = JFormMap.getObj(JF_StoredContents, ItemKey)
@@ -169,7 +174,7 @@ Function removeAmountActorItems(Actor akTarget, Float afRemoveAmount, Float afSt
           Float FloatChance = Utility.RandomFloat()
           If FloatChance <= afStoredRemoveChance
             If ItemKey as Actor
-              SCXLib.extractActor(akTarget, ItemKey as Actor, 2, VomitContainer)
+              SCXLib.extractActor(akTarget, ItemKey as Actor, sKey, "Stored", VomitContainer)
             ElseIf ItemKey as SCX_Bundle
               ;VomitContainer.AddItem(ItemKey as SCX_Bundle, 1, False)
               VomitContainer.AddItem((ItemKey as SCX_Bundle).ItemForm, (ItemKey as SCX_Bundle).ItemNum, False)
@@ -192,23 +197,27 @@ Function removeAmountActorItems(Actor akTarget, Float afRemoveAmount, Float afSt
     Int i = ItemStoredTypes.length
     While i
       i -= 1
-      Int JF_ContentsMap = getContents(akTarget, ItemStoredTypes[i])
+      String[] ArchKeys = StringUtil.Split(ItemStoredTypes[i], ".")
+      Int JF_ContentsMap = getContents(akTarget, ArchKeys[0], ArchKeys[1])
       ItemKey = JFormMap.nextKey(JF_ContentsMap)
       JA_Remove = JValue.retain(JArray.object())
       While ItemKey
-        If ItemKey as ObjectReference
-          Float Chance = Utility.RandomFloat()
-          If Chance <= afOtherRemoveChance
-            If ItemKey as Actor
-              SCXLib.extractActor(akTarget, ItemKey as Actor, ItemStoredTypes[i], VomitContainer)
-            ElseIf ItemKey as SCX_Bundle
-              ;VomitContainer.AddItem(ItemKey as SCX_Bundle, 1, False)
-              VomitContainer.AddItem((ItemKey as SCX_Bundle).ItemForm, (ItemKey as SCX_Bundle).ItemNum, False)
-              (ItemKey as ObjectReference).Delete()
-            Else
-              VomitContainer.AddItem(ItemKey as ObjectReference, 1, False)
+        String[] StoredKeys = StringUtil.Split(JMap.getStr(JFormMap.getObj(JF_ContentsMap, ItemKey), "StoredItemType"), ".")
+        If StoredKeys[0] == sKey && ItemTypes.find(StoredKeys[1]) != -1
+          If ItemKey as ObjectReference
+            Float Chance = Utility.RandomFloat()
+            If Chance <= afOtherRemoveChance
+              If ItemKey as Actor
+                SCXLib.extractActor(akTarget, ItemKey as Actor, ArchKeys[0], ArchKeys[1], VomitContainer)
+              ElseIf ItemKey as SCX_Bundle
+                ;VomitContainer.AddItem(ItemKey as SCX_Bundle, 1, False)
+                VomitContainer.AddItem((ItemKey as SCX_Bundle).ItemForm, (ItemKey as SCX_Bundle).ItemNum, False)
+                (ItemKey as ObjectReference).Delete()
+              Else
+                VomitContainer.AddItem(ItemKey as ObjectReference, 1, False)
+              EndIf
+              JArray.addForm(JA_Remove, ItemKey)
             EndIf
-            JArray.addForm(JA_Remove, ItemKey)
           EndIf
         EndIf
         ItemKey = JFormMap.nextKey(JF_ContentsMap, ItemKey)
@@ -221,27 +230,28 @@ Function removeAmountActorItems(Actor akTarget, Float afRemoveAmount, Float afSt
   Notice("vomitAmount completed for " + nameGet(aktarget))
 EndFunction
 
-Function removeSpecificActorItems(Actor akTarget, Int aiItemType, ObjectReference akReference = None, Form akBaseObject = None, Int aiItemCount = 1, Bool abDestroyDigestItems = True)
+Function removeSpecificActorItems(Actor akTarget, String asArchetype, String asType, ObjectReference akReference = None, Form akBaseObject = None, Int aiItemCount = 1, Bool abDestroyDigestItems = True)
   {Finds given reference/baseitem and removes it from the give itemtype array.
   If itemtype is not a member of the archetype, then it searches the given itemtype array for the stored type.}
   Notice("vomitSpecificItem beginning for " + nameGet(akTarget))
   If !akReference && !akBaseObject
     Return
   EndIf
-  If ItemTypes.find(aiItemType) != -1
-    Int JF_Contents = getContents(akTarget, aiItemType)
+  String sKey = _getStrKey()
+  If asArchetype == sKey && ItemTypes.find(asType) != -1
+    Int JF_Contents = getContents(akTarget, sKey, asType)
     If akReference
       If JFormMap.hasKey(JF_Contents, akReference)
         ObjectReference VomitContainer = performRemove(akTarget, False)
         If akReference as Actor
-          SCXLib.extractActor(akTarget, akReference as Actor, aiItemType, VomitContainer)
+          SCXLib.extractActor(akTarget, akReference as Actor, sKey, asType, VomitContainer)
         ElseIf akReference as SCX_Bundle
-          If !abDestroyDigestItems || aiItemType != 1
+          If !abDestroyDigestItems || asType != "Breakdown"
             VomitContainer.addItem((akReference as SCX_Bundle).ItemForm, (akReference as SCX_Bundle).ItemNum, False)
           EndIf
           akReference.Delete()
         Else
-          If !abDestroyDigestItems || aiItemType != 1
+          If !abDestroyDigestItems || asType != "Breakdown"
             VomitContainer.AddItem(akReference as ObjectReference, 1, False)
           EndIf
           ;akReference.Delete()
@@ -260,7 +270,7 @@ Function removeSpecificActorItems(Actor akTarget, Int aiItemType, ObjectReferenc
           AddItems = aiItemCount
           bEmpty = True
         EndIf
-        If !abDestroyDigestItems || aiItemType != 1
+        If !abDestroyDigestItems || asType != "Breakdown"
           VomitContainer.addItem(Bundle.ItemForm, AddItems, False)
         EndIf
         If bEmpty
@@ -274,7 +284,7 @@ Function removeSpecificActorItems(Actor akTarget, Int aiItemType, ObjectReferenc
       EndIf
     EndIf
   Else
-    Int JF_Contents = getContents(akTarget, aiItemType)
+    Int JF_Contents = getContents(akTarget, asArchetype, asType)
     Form ItemKey = JFormMap.nextKey(JF_Contents)
     While ItemKey
       Form BundleForm = (ItemKey as SCX_Bundle).ItemForm
@@ -284,7 +294,7 @@ Function removeSpecificActorItems(Actor akTarget, Int aiItemType, ObjectReferenc
         If ItemTypes.find(Stored) != -1
           ObjectReference VomitContainer = performRemove(akTarget, False)
           If ItemKey as Actor
-            SCXLib.extractActor(akTarget, akReference as Actor, aiItemType, VomitContainer)
+            SCXLib.extractActor(akTarget, akReference as Actor, asArchetype, asType, VomitContainer)
           ElseIf ItemKey as SCX_Bundle
             VomitContainer.addItem((ItemKey as SCX_Bundle).ItemForm, (ItemKey as SCX_Bundle).ItemNum, False)
             akReference.Delete()
@@ -350,12 +360,12 @@ Function addUIEActorContents(Actor akTarget, UIListMenu UIList, Int JI_ItemList,
   EndWhile
 EndFunction
 
-Bool Function HandleUIEActorContents(Actor akTarget, Form akItem, Int aiItemType, String asAction, Int aiMode = 0)
+Bool Function HandleUIEActorContents(Actor akTarget, Form akItem, String asType, String asAction, Int aiMode = 0)
   If asAction == "Extract"
-    removeSpecificActorItems(akTarget, aiItemType, akItem as ObjectReference, akItem)
+    removeSpecificActorItems(akTarget, _getStrKey(), asType, akItem as ObjectReference, akItem)
     Return True
   ElseIf asAction == "SwitchState"
-    If aiItemType == 2
+    If asType == "Stored"
       If akItem as SCX_Bundle
         Form BundleForm = (akItem as SCX_Bundle).ItemForm
         Int i = (akItem as SCX_Bundle).ItemNum
@@ -364,13 +374,13 @@ Bool Function HandleUIEActorContents(Actor akTarget, Form akItem, Int aiItemType
             i -= 1
             akTarget.EquipItem(BundleForm, False, False)
           EndWhile
-          Int JF_Stored = getContents(akTarget, 2)
+          Int JF_Stored = getContents(akTarget, _getStrKey(), "Stored")
           JFormMap.removeKey(JF_Stored, akItem)
           (akItem as ObjectReference).Delete()
           Return True
         ElseIf akItem as Actor || getPerkLevelDB(akTarget, "SCLExtractionExpert") >= 1
-          SCLib.addItem(akTarget, BundleForm as ObjectReference, BundleForm, 1, aiItemCount = i)
-          Int JF_Stored = getContents(akTarget, 2)
+          addToContents(akTarget, BundleForm as ObjectReference, BundleForm, "Breakdown", aiItemCount = i)
+          Int JF_Stored = getContents(akTarget, _getStrKey(), "Stored")
           JFormMap.removeKey(JF_Stored, akItem)
           (akItem as ObjectReference).Delete()
           Return True
@@ -387,12 +397,12 @@ Bool Function HandleUIEActorContents(Actor akTarget, Form akItem, Int aiItemType
         EndIf
         If (Base as Potion || Base as Ingredient) && !SCLib.isNotFood(Base)
           akTarget.EquipItem(akItem)
-          Int JF_Stored = getContents(akTarget, 2)
+          Int JF_Stored = getContents(akTarget, _getStrKey(), "Stored")
           JFormMap.removeKey(JF_Stored, akItem)
           Return True
         ElseIf akItem as Actor || getPerkLevelDB(akTarget, "SCLExtractionExpert") >= 1
-          SCLib.addItem(akTarget, akItem as ObjectReference, akItem, 1)
-          Int JF_Stored = getContents(akTarget, 2)
+          addToContents(akTarget, akItem as ObjectReference, akItem, "Breakdown")
+          Int JF_Stored = getContents(akTarget, _getStrKey(), "Stored")
           JFormMap.removeKey(JF_Stored, akItem)
           Return True
         Else
@@ -440,9 +450,9 @@ Function addTransferItem(Actor akTarget, ObjectReference akItemReference = None,
     BaseItem = akBaseItem
   EndIf
   If (BaseItem as Potion || BaseItem as Ingredient) && !SCLib.isNotFood(BaseItem)
-    addToContents(akTarget, akItemReference, akBaseItem, 1, aiItemCount)
+    addToContents(akTarget, akItemReference, akBaseItem, "Breakdown", aiItemCount)
   Else
-    addToContents(akTarget, akItemReference, akBaseItem, 2, aiItemCount)
+    addToContents(akTarget, akItemReference, akBaseItem, "Stored", aiItemCount)
   EndIf
 EndFunction
 
@@ -461,7 +471,7 @@ Function breakdownItems(Actor akTarget, Float afTimePassed, Int aiTargetData = 0
     TargetData = aiTargetData
   EndIf
   JMap.setInt(TargetData, "SCLNowDigesting", 1)
-  Int ItemList = getContents(akTarget, 1, TargetData)
+  Int ItemList = getContents(akTarget, _getStrKey(), "Breakdown", TargetData)
   If !JValue.empty(ItemList)
     Note("ItemList 1 has items in it!")
     Float DigestRate = JMap.getFlt(TargetData, "SCLDigestRate")
@@ -559,15 +569,13 @@ Function breakdownItems(Actor akTarget, Float afTimePassed, Int aiTargetData = 0
     EndWhile
     Note("Done processing items, setting final stats:")
     ;Maybe just run updateFullnessEX after digestion.
-    JMap.setFlt(TargetData, "ContentsFullness1", Fullness)
-    JMap.setFlt(TargetData, "STTotalDigestedFood", JMap.getFlt(TargetData, "STTotalDigestedFood") + TotalDigested)
-    JMap.setFlt(TargetData, "STLastDigestAmount", TotalDigested)
+    JMap.setFlt(TargetData, "SCLTotalDigestedFood", JMap.getFlt(TargetData, "SCLTotalDigestedFood") + TotalDigested)
+    JMap.setFlt(TargetData, "SCLLastDigestAmount", TotalDigested)
     JF_eraseKeys(ItemList, JA_Remove)
     JA_Remove = JValue.release(JA_Remove)
     sendDigestFinishEvent(akTarget, TotalDigested)
   Else
-    JMap.setFlt(TargetData, "ContentsFullness1", 0)
-    JMap.setFlt(TargetData, "STLastDigestAmount", 0)
+    JMap.setFlt(TargetData, "SCLLastDigestAmount", 0)
     sendDigestFinishEvent(akTarget, 0)
   EndIf
   JMap.setInt(TargetData, "SCLNowDigesting", 0)
@@ -593,9 +601,10 @@ Function sendDigestFinishEvent(Actor akEater, Float afDigestedAmount)
   ModEvent.Send(FinishEvent)
 EndFunction
 
-Int Function addToContents(Actor akTarget, ObjectReference akReference = None, Form akBaseObject = None, Int aiItemType, Int aiStoredItemType = 0, Float afWeightValueOverride = -1.0, Int aiItemCount = 1, Bool abMoveNow = True)
-  Notice("Adding to contents: Actor=" + nameGet(akTarget) + ",Item=" + nameGet(akBaseObject) + ",ItemType=" + aiItemType + ",StoredItemType=" + aiStoredItemType)
-  Int JF_Contents = getContents(akTarget, aiItemType)
+Int Function addToContents(Actor akTarget, ObjectReference akReference = None, Form akBaseObject = None, String asType, String asStoredArchPlusType = "", Float afWeightValueOverride = -1.0, Int aiItemCount = 1, Bool abMoveNow = True)
+  Notice("Adding to contents: Actor=" + nameGet(akTarget) + ",Item=" + nameGet(akBaseObject) + ",ItemType=" + asType + ",StoredItemType=" + asStoredArchPlusType)
+  String sKey = _getStrKey()
+  Int JF_Contents = getContents(akTarget, sKey, asType)
   Int JM_ItemEntry
   If akReference as SCX_Bundle
     Form BundleItem = (akReference as SCX_Bundle).ItemForm
@@ -607,9 +616,9 @@ Int Function addToContents(Actor akTarget, ObjectReference akReference = None, F
       JMap.setFlt(JM_ItemEntry, "ActiveWeightValue", Weight)
       JMap.setFlt(JM_ItemEntry, "IndvWeightValue", Weight)
       JMap.setForm(JM_ItemEntry, "ItemReference", akReference) ;Redundancy, just in case you only have the ItemEntry
-      JMap.setInt(JM_ItemEntry, "ItemType", aiItemType) ;again, redundancy
+      JMap.setStr(JM_ItemEntry, "ItemType", sKey + "." + asType) ;again, redundancy
       JMap.setForm(JM_ItemEntry, "ItemOwner", akTarget)
-      JMap.setInt(JM_ItemEntry, "StoredItemType", aiStoredItemType)
+      JMap.setStr(JM_ItemEntry, "StoredItemType", asStoredArchPlusType)
 
       JFormMap.setObj(JF_Contents, akReference, JM_ItemEntry)
       If abMoveNow
@@ -629,13 +638,14 @@ Int Function addToContents(Actor akTarget, ObjectReference akReference = None, F
     Else
       Weight = afWeightValueOverride
     EndIf
+    JM_ItemEntry = JMap.object()
     JMap.setFlt(JM_ItemEntry, "WeightValue", Weight * (akReference as SCX_Bundle).ItemNum)
     JMap.setFlt(JM_ItemEntry, "ActiveWeightValue", Weight)
     JMap.setFlt(JM_ItemEntry, "IndvWeightValue", Weight)
     JMap.setForm(JM_ItemEntry, "ItemReference", akReference) ;Redundancy, just in case you only have the ItemEntry
-    JMap.setInt(JM_ItemEntry, "ItemType", aiItemType) ;again, redundancy
+    JMap.setStr(JM_ItemEntry, "ItemType", sKey + "." + asType) ;again, redundancy
     JMap.setForm(JM_ItemEntry, "ItemOwner", akTarget)
-    JMap.setInt(JM_ItemEntry, "StoredItemType", aiStoredItemType)
+    JMap.setStr(JM_ItemEntry, "StoredItemType", asStoredArchPlusType)
 
     JFormMap.setObj(JF_Contents, akReference, JM_ItemEntry)
     If abMoveNow
@@ -651,9 +661,9 @@ Int Function addToContents(Actor akTarget, ObjectReference akReference = None, F
       JMap.setFlt(JM_ItemEntry, "ActiveWeightValue", Weight)
       JMap.setFlt(JM_ItemEntry, "IndvWeightValue", Weight)
       JMap.setForm(JM_ItemEntry, "ItemReference", ItemBundle) ;Redundancy, just in case you only have the ItemEntry
-      JMap.setInt(JM_ItemEntry, "ItemType", aiItemType) ;again, redundancy
+      JMap.setStr(JM_ItemEntry, "ItemType", sKey + "." + asType) ;again, redundancy
       JMap.setForm(JM_ItemEntry, "ItemOwner", akTarget)
-      JMap.setInt(JM_ItemEntry, "StoredItemType", aiStoredItemType)
+      JMap.setStr(JM_ItemEntry, "StoredItemType", asStoredArchPlusType)
 
       JFormMap.setObj(JF_Contents, ItemBundle, JM_ItemEntry)
 

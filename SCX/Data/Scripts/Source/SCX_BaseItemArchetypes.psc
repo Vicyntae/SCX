@@ -6,15 +6,13 @@ Int Function _getSCX_JC_List()
   Return SCXSet.JM_BaseArchetypes
 EndFunction
 
-Int[] Property ItemTypes Auto
-Int[] Property ItemStoredTypes Auto ;Any items with the key "StoredItemType" will be searched for and obtained in these JFormMaps
+String[] Property ItemTypes Auto  ;Instead of numbers, it will be Archetype.Type pairs. this lists possible types for this archetype
+String[] Property ItemContentsKeys Auto
+String[] Property ItemStoredTypes Auto  ;Arch.Type Pairs
+
 String[] Property ShortDescriptions Auto
 String[] Property FullDescriptions Auto
-String[] Property ContentsKeys Auto
 
-Int Property MainStorageType = 0 Auto ;Where are items stored?
-Int Property MainBreakdownType = 0 Auto ;Where are they broken down?
-Int Property MainBuildupType = 0 Auto   ;Where are the built up?
 String Property TotalWeightKey Auto
 
 Float Function updateArchetype(Actor akTarget, Int aiTargetData = 0)
@@ -22,10 +20,11 @@ Float Function updateArchetype(Actor akTarget, Int aiTargetData = 0)
     aiTargetData = getTargetData(akTarget)
   EndIf
   Float Total
+  String sKey = _getStrKey()
   Int i = ItemTypes.length
   While i
     i -= 1
-    Int JF_Contents = getContents(akTarget, ItemTypes[i], aiTargetData)
+    Int JF_Contents = getContents(akTarget, sKey, ItemTypes[i], aiTargetData)
     If JValue.isFormMap(JF_Contents)
       Total += sumWeightValues(JF_Contents)
     EndIf
@@ -33,7 +32,8 @@ Float Function updateArchetype(Actor akTarget, Int aiTargetData = 0)
   i = ItemStoredTypes.length
   While i
     i -= 1
-    Int JF_Contents = getContents(akTarget, ItemStoredTypes[i], aiTargetData)
+    String[] StoredKeys = StringUtil.Split(ItemStoredTypes[i], ".")
+    Int JF_Contents = getContents(akTarget, StoredKeys[0], StoredKeys[1], aiTargetData)
     If JValue.isFormMap(JF_Contents)
       Total += sumStoredWeightValues(JF_Contents, ItemTypes)
     EndIf
@@ -48,7 +48,7 @@ EndFunction
 Function removeAmountActorItems(Actor akTarget, Float afRemoveAmount, Float afStoredRemoveChance = 0.0, Float afOtherRemoveChance = 0.0)
 EndFunction
 
-Function removeSpecificActorItems(Actor akTarget, Int aiItemType, ObjectReference akReference = None, Form akBaseObject = None, Int aiItemCount = 1, Bool abDestroyBreakdownItems = True)
+Function removeSpecificActorItems(Actor akTarget, String asArchetype, String asType, ObjectReference akReference = None, Form akBaseObject = None, Int aiItemCount = 1, Bool abDestroyDigestItems = True)
 EndFunction
 
 ObjectReference Function performRemove(Actor akTarget, Bool abLeveled)
@@ -77,9 +77,9 @@ Function addUIEActorContents(Actor akTarget, UIListMenu UIList, Int JI_ItemList,
   EndWhile
 EndFunction
 
-Bool Function HandleUIEActorContents(Actor akTarget, Form akItem, Int aiItemType, String asAction, Int aiMode = 0)
+Bool Function HandleUIEActorContents(Actor akTarget, Form akItem, String asType, String asAction, Int aiMode = 0)
   If asAction == "Extract"
-    removeSpecificActorItems(akTarget, aiItemType, akItem as ObjectReference, akItem)
+    removeSpecificActorItems(akTarget, _getStrKey(), asType, akItem as ObjectReference, akItem)
     Return True
   EndIf
   Return False
@@ -116,96 +116,6 @@ Int Function getAllContents(Actor akTarget, Int aiTargetData = 0)
   Return JF_CompiledContents
 EndFunction
 
-Int Function getBreakdownContents(Actor akTarget, Int aiTargetData = 0)
-  {Gathers form-value pairs from breakdown contents types and returns them in new JFormMap}
-  If MainBreakdownType > 0
-    If JValue.isExists(aiTargetData)
-      aiTargetData = SCXLib.getTargetData(akTarget)
-    EndIf
-    Int JF_CompiledContents = JValue.retain(JFormMap.object())
-    Int JF_Breakdown = SCXLib.getContents(akTarget, MainBreakdownType, aiTargetData)
-    JFormMap.addPairs(JF_CompiledContents, JF_Breakdown, True)
-    Int j = 0
-    Int NumItemTypes = ItemStoredTypes.length
-    While j < NumItemTypes
-      Int JF_Contents = SCXLib.getContents(akTarget, ItemStoredTypes[j], aiTargetData)
-      Form FormKey = JFormMap.nextKey(JF_Contents)
-      While FormKey
-        Int JM_ItemEntry = JFormMap.getObj(JF_Contents, FormKey)
-        If JMap.getInt(JM_ItemEntry, "StoredItemType") == MainBreakdownType
-          JFormMap.setObj(JF_CompiledContents, FormKey, JM_ItemEntry)
-        Endif
-        FormKey = JFormMap.nextKey(JF_Contents)
-      EndWhile
-      j += 1
-    EndWhile
-    JValue.release(JF_CompiledContents)
-    Return JF_CompiledContents
-  Else
-    Return 0
-  EndIf
-EndFunction
-
-Int Function getBuildupContents(Actor akTarget, Int aiTargetData = 0)
-  {Gathers form-value pairs from buildup contents types and returns them in new JFormMap}
-  If MainBuildupType > 0
-    If JValue.isExists(aiTargetData)
-      aiTargetData = SCXLib.getTargetData(akTarget)
-    EndIf
-    Int JF_CompiledContents = JValue.retain(JFormMap.object())
-    Int JF_Breakdown = SCXLib.getContents(akTarget, MainBuildupType, aiTargetData)
-    JFormMap.addPairs(JF_CompiledContents, JF_Breakdown, True)
-    Int j = 0
-    Int NumItemTypes = ItemStoredTypes.length
-    While j < NumItemTypes
-      Int JF_Contents = SCXLib.getContents(akTarget, ItemStoredTypes[j], aiTargetData)
-      Form FormKey = JFormMap.nextKey(JF_Contents)
-      While FormKey
-        Int JM_ItemEntry = JFormMap.getObj(JF_Contents, FormKey)
-        If JMap.getInt(JM_ItemEntry, "StoredItemType") == MainBuildupType
-          JFormMap.setObj(JF_CompiledContents, FormKey, JM_ItemEntry)
-        Endif
-        FormKey = JFormMap.nextKey(JF_Contents)
-      EndWhile
-      j += 1
-    EndWhile
-    JValue.release(JF_CompiledContents)
-    Return JF_CompiledContents
-  Else
-    Return 0
-  EndIf
-EndFunction
-
-Int Function getStoredContents(Actor akTarget, Int aiTargetData)
-  {Gathers form-value pairs from storage types and returns them in new JFormMap}
-  If MainStorageType > 0
-    If !JValue.isExists(aiTargetData)
-      aiTargetData = SCXLib.getTargetData(akTarget)
-    EndIf
-    Int JF_CompiledContents = JValue.retain(JFormMap.object())
-    Int JF_Breakdown = SCXLib.getContents(akTarget, MainStorageType, aiTargetData)
-    JFormMap.addPairs(JF_CompiledContents, JF_Breakdown, True)
-    Int j = 0
-    Int NumItemTypes = ItemStoredTypes.length
-    While j < NumItemTypes
-      Int JF_Contents = SCXLib.getContents(akTarget, ItemStoredTypes[j], aiTargetData)
-      Form FormKey = JFormMap.nextKey(JF_Contents)
-      While FormKey
-        Int JM_ItemEntry = JFormMap.getObj(JF_Contents, FormKey)
-        If JMap.getInt(JM_ItemEntry, "StoredItemType") == MainStorageType
-          JFormMap.setObj(JF_CompiledContents, FormKey, JM_ItemEntry)
-        Endif
-        FormKey = JFormMap.nextKey(JF_Contents)
-      EndWhile
-      j += 1
-    EndWhile
-    JValue.release(JF_CompiledContents)
-    Return JF_CompiledContents
-  Else
-    Return 0
-  EndIf
-EndFunction
-
 Bool Function checkTransferItem(Actor akTarget, ObjectReference akItem, Form akBaseItem, Int aiItemCount = 1)
   Return False
 EndFunction
@@ -213,7 +123,7 @@ EndFunction
 Function displayTransferItemAccept(Actor akTarget, ObjectReference akItem, Form akBaseItem, Int aiItemCount = 1)
 EndFunction
 
-Int Function addToContents(Actor akTarget, ObjectReference akReference = None, Form akBaseObject = None, Int aiItemType, Int aiStoredItemType = 0, Float afWeightValueOverride = -1.0, Int aiItemCount = 1, Bool abMoveNow = True)
+Int Function addToContents(Actor akTarget, ObjectReference akReference = None, Form akBaseObject = None, String asType, String asStoredArchPlusType = "", Float afWeightValueOverride = -1.0, Int aiItemCount = 1, Bool abMoveNow = True)
 EndFunction
 
 Function displayTransferItemReject(Actor akTarget, ObjectReference akItem, Form akBaseItem, Int aiItemCount = 1)
@@ -238,20 +148,23 @@ String Function getItemListDesc(Form akItem, Int JM_ItemEntry)
   Else
     Name = akItem.GetName()
   EndIf
-  Int ItemType = JMap.getInt(JM_ItemEntry, "ItemType")
   String Desc
-  Int Index = ItemTypes.find(ItemType)
-  If Index != -1
-    Desc = ShortDescriptions[Index]
+  String[] ItemType = StringUtil.Split(JMap.getStr(JM_ItemEntry, "ItemType"), ".")
+  If ItemType[0] == _getStrKey()
+    Int Index = ItemTypes.find(ItemType[1])
+    If Index != -1
+      Desc = ShortDescriptions[Index]
+    EndIf
   Else
-    SCX_BaseItemArchetypes Arch = getArchFromType(ItemType)
+    SCX_BaseItemArchetypes Arch = getSCX_BaseAlias(SCXSet.JM_BaseArchetypes, ItemType[0]) as SCX_BaseItemArchetypes
     If Arch
-      Int Index2 = Arch.ItemTypes.find(ItemType)
-      If Index2 != -1
+      Int Index = Arch.ItemTypes.find(ItemType[1])
+      If Index != -1
         Desc = Arch.ShortDescriptions[Index]
       EndIf
     EndIf
   EndIf
+
   Float WeightValue = JMap.getFlt(JM_ItemEntry, "WeightValue")
   String Finished = Name + ": " + Desc + ": " + WeightValue
   Return Finished

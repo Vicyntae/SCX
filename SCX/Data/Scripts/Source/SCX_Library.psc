@@ -885,13 +885,13 @@ Bool Function buildPerksMenu(Actor akTarget, Int aiMode = 0, String asPerkGroup 
   Return True
 EndFunction
 
-Function extractActor(Actor akSource, Actor akTarget, Int aiItemType, ObjectReference akPosition)
+Function extractActor(Actor akSource, Actor akTarget, String asArch, String asType, ObjectReference akPosition)
   Notice("Extracting " + nameGet(akTarget) + " to " + nameGet(akPosition))
   Int JM_LibList = SCXSet.JM_BaseLibraryList
   String LibraryName = JMap.nextKey(JM_LibList)
   While LibraryName
     SCX_BaseLibrary Lib = JMap.getForm(JM_LibList, LibraryName) as SCX_BaseLibrary
-    Lib.handleActorExtraction(akSource, akTarget, aiItemType, akPosition)
+    Lib.handleActorExtraction(akSource, akTarget, asArch, asType, akPosition)
     LibraryName = JMap.nextKey(JM_LibList, LibraryName)
   EndWhile
   ;akTarget.DisableNoWait(False)
@@ -900,7 +900,8 @@ Function extractActor(Actor akSource, Actor akTarget, Int aiItemType, ObjectRefe
   Int E = ModEvent.Create("SCX_ActorExtract")
   ModEvent.PushForm(E, akSource)
   ModEvent.PushForm(E, akTarget)
-  ModEvent.PushInt(E, aiItemType)
+  ModEvent.PushString(E, asArch)
+  ModEvent.PushString(E, asType)
   ModEvent.Send(E)  ;aktarget.EnableNoWait(False)
   Utility.Wait(0.5)
 EndFunction

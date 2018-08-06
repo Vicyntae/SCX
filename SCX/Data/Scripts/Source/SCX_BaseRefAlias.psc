@@ -128,6 +128,17 @@ Int Function getTargetData(Actor akTarget, Bool abGenProfile = False)
   EndIf
 EndFunction
 
+Int Function getData(Actor akTarget, Int aiTargetData = 0)
+  {Convenience function, gets ActorData if needed}
+  Int TargetData
+  If aiTargetData
+    TargetData = aiTargetData
+  Else
+    TargetData = getTargetData(akTarget)
+  EndIf
+  Return TargetData
+EndFunction
+
 ReferenceAlias Function getSCX_BaseAlias(Int JC_BaseList, String asBaseID = "", Int aiBaseID = -1, Form afBaseID = None)
   {General function to retrieve objects using the SCX method
   Returns a reference alias that should be cast to the correct type}
@@ -149,17 +160,21 @@ ReferenceAlias Function getSCX_BaseAlias(Int JC_BaseList, String asBaseID = "", 
   EndIf
 EndFunction
 
-Int Function getContents(Actor akTarget, Int aiItemType, Int aiTargetData = 0)
+Int Function getContents(Actor akTarget, String asArchetype, String asType, Int aiTargetData = 0)
   {New setup: a JFormMap for each item type}
   If !JValue.isMap(aiTargetData)
     aiTargetData = getTargetData(akTarget)
   EndIf
-  Int JF_Return = JMap.getObj(aiTargetData, "Contents" + aiItemType)
-  If !JF_Return
-    JF_Return = JFormMap.object()
-    JMap.setObj(aiTargetData, "Contents" + aiItemType, JF_Return)
+  SCX_BaseItemArchetypes Arch = getSCX_BaseAlias(SCXSet.JM_BaseArchetypes, asType) as SCX_BaseItemArchetypes
+  Int Index = Arch.ItemTypes.Find(asType)
+  If Index != -1
+    Int JM_Contents = JMap.getObj(aiTargetData, Arch.ItemContentsKeys[Index])
+    If !JM_Contents
+      JM_Contents = JMap.object()
+      JMap.setObj(aiTargetData, Arch.ItemContentsKeys[Index], JM_Contents)
+    EndIf
+    Return JM_Contents
   EndIf
-  Return JF_Return
 EndFunction
 
 String Function getMessage(String asKey, Int aiIndex = -1, Bool abTagReplace = True, Int JA_Actors = 0, Int aiActorIndex = -1)
@@ -446,13 +461,14 @@ Float Function sumWeightValues(Int JF_ContentsMap)
   EndIf/;
 EndFunction
 
-Float Function sumStoredWeightValues(Int JF_ContentsMap, Int[] aiItemTypes)
+Float Function sumStoredWeightValues(Int JF_ContentsMap, String[] aiItemTypes)
   {Checks if StoredItemType is on the aiItemTypes list, then adds its weight value.}
   Float Total
   Form ItemKey = JFormMap.nextKey(JF_ContentsMap)
   While ItemKey
     Int JM_ItemEntry = JFormMap.getObj(JF_ContentsMap, ItemKey)
-    If aiItemTypes.find(JMap.getInt(JM_ItemEntry, "StoredItemType")) != -1
+    String StoredType = JMap.getStr(JM_ItemEntry, "StoredItemType")
+    If aiItemTypes.find(StoredType) != -1
       Total += JMap.getFlt(JM_ItemEntry, "WeightValue")
     EndIf
     ItemKey = JFormMap.nextKey(JF_ContentsMap, ItemKey)
@@ -460,12 +476,12 @@ Float Function sumStoredWeightValues(Int JF_ContentsMap, Int[] aiItemTypes)
   Return Total
 EndFunction
 
-Int Function countItemType(Actor akTarget, Int aiItemType, Bool abCountForms = False, Int aiTargetData = 0)
+Int Function countItemType(Actor akTarget, String asArch, String asType, Bool abCountForms = False, Int aiTargetData = 0)
   {Will normally just count same forms as 1, use abCountForms to count forms in bundles}
   If !JValue.isMap(aiTargetData)
     aiTargetData = getTargetData(akTarget)
   EndIf
-  Int JF_ST_Contents = getContents(akTarget, aiItemType, aiTargetData)
+  Int JF_ST_Contents = getContents(akTarget, asArch, asType, aiTargetData)
   If !abCountForms
     Return JValue.count(JF_ST_Contents)
   Else
@@ -484,7 +500,6 @@ Int Function countItemType(Actor akTarget, Int aiItemType, Bool abCountForms = F
     Return Num
   EndIf
 EndFunction
-
 SCX_Bundle Function findBundle(Int JF_ContentsMap, Form akBaseObject)
   {Searches through all items in an actor's content array, returns bundle}
   Form SearchRef = JFormMap.nextKey(JF_ContentsMap)
@@ -518,32 +533,6 @@ Int Function findBundleEntry(Int JF_ContentsMap, Form akBaseObject)
   EndWhile
   Return 0
 EndFunction
-
-SCX_BaseItemArchetypes Function getArchFromType(Int aiItemType)
-  Int JI_ItemTypes = SCXSet.JI_BaseItemTypes
-  String ArchKey = JIntMap.getStr(JI_ItemTypes, aiItemType)
-  If !ArchKey
-    Int JM_Archs = SCXSet.JM_BaseArchetypes
-    String sKey = JMap.nextKey(JM_Archs)
-    While sKey
-      Quest ArchQuest = JMap.getForm(JM_Archs, sKey) as Quest
-      If ArchQuest
-        SCX_BaseItemArchetypes ArchForm = ArchQuest.GetAliasByName(sKey) as SCX_BaseItemArchetypes
-        If ArchForm
-          If ArchForm.ItemTypes.find(aiItemType) != -1
-            JIntMap.setStr(JI_ItemTypes, aiItemType, sKey)
-            Return ArchForm
-          EndIf
-        EndIf
-      EndIf
-      sKey = JMap.nextKey(JM_Archs, sKey)
-    EndWhile
-  Else
-    Return getSCX_BaseAlias(JI_ItemTypes, aiBaseID = aiItemType) as SCX_BaseItemArchetypes
-  EndIf
-EndFunction
-
-
 
 ;+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ;Debug Functions

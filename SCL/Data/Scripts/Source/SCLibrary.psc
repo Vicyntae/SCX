@@ -115,8 +115,8 @@ Function setSelectOptions(SCX_ModConfigMenu MCM, String asValue, Int aiOption)
 EndFunction
 
 Float[] Function getSliderOptions(SCX_ModConfigMenu MCM, String asValue)
-Float[] SliderValues = New Float[5]
-Int ActorData = MCM.SelectedData
+  Float[] SliderValues = New Float[5]
+  Int ActorData = MCM.SelectedData
   If asValue == "SCLEditStomachBase"
     SliderValues[0] = JMap.getFlt(ActorData, "SCLStomachCapacity")
     SliderValues[1] = JMap.getFlt(ActorData, "SCLStomachCapacity")
@@ -400,46 +400,52 @@ Bool Function handleUIEStatFromList(Actor akTarget, String asValue)
     UIInput.OpenMenu()
     Float Result = UIInput.GetResultString() as Float
     If Result <= 0
-      Result == 0.1
+      Result = 0.1
     EndIf
     JMap.setFlt(TargetData, "SCLStomachCapacity", Result)
+    Return True
   ElseIf asValue == "SCLEditStomachStretch"
     UITextEntryMenu UIInput = UIExtensions.GetMenu("UITextEntryMenu", True) as UITextEntryMenu
     UIInput.SetPropertyString("text", "Enter new stretch value here.")
     UIInput.OpenMenu()
     Float Result = UIInput.GetResultString() as Float
     If Result <= 0
-      Result == 0.1
+      Result = 0.1
     EndIf
     JMap.setFlt(TargetData, "SCLStomachStretch", Result)
+    Return True
   ElseIf asValue == "SCLEditDigestRate"
     UITextEntryMenu UIInput = UIExtensions.GetMenu("UITextEntryMenu", True) as UITextEntryMenu
     UIInput.SetPropertyString("text", "Enter new digestion rate value here.")
     UIInput.OpenMenu()
     Float Result = UIInput.GetResultString() as Float
     If Result < 0
-      Result == 0
+      Result = 0
     EndIf
     JMap.setFlt(TargetData, "SCLDigestRate", Result)
+    Return True
   ElseIf asValue == "SCLEditGluttony"
     UITextEntryMenu UIInput = UIExtensions.GetMenu("UITextEntryMenu", True) as UITextEntryMenu
     UIInput.SetPropertyString("text", "Enter new gluttony value here.")
     UIInput.OpenMenu()
     Int Result = UIInput.GetResultString() as Int
     If Result < 0
-      Result == 0
+      Result = 0
     EndIf
     JMap.setInt(TargetData, "SCLGluttony", Result)
+    Return True
   ElseIf asValue == "SCLEditStomachStorage"
     UITextEntryMenu UIInput = UIExtensions.GetMenu("UITextEntryMenu", True) as UITextEntryMenu
     UIInput.SetPropertyString("text", "Enter new stomach storage limit value here.")
     UIInput.OpenMenu()
     Int Result = UIInput.GetResultString() as Int
     If Result < 0
-      Result == 0
+      Result = 0
     EndIf
     JMap.setInt(TargetData, "SCLStomachStorage", Result)
+    Return True
   EndIf
+  Return False
 EndFunction
 ;*******************************************************************************
 
@@ -542,49 +548,6 @@ Int Function getCurrentOverfull(Actor akTarget, Int aiTargetData = 0)
   Return JMap.getInt(TargetData, "SCLAppliedOverfullTier")
 EndFunction
 
-Float Function getHeavyPercent(Actor akTarget, Int aiTargetData = 0)
-  Int TargetData = getData(akTarget, aiTargetData)
-  Float HeavyPercent
-  Float Fullness = SCXLib.getActorTotalWeightContained(akTarget, TargetData) ;JMap.getFlt(TargetData, "STFullness")  ;Replace this with total?
-  Int PerkLevel = JMap.getInt(TargetData, "SCLHeavyBurden")
-  Int MaxWeight = 150 * (PerkLevel + 1)
-  Int BaseWeight = 100 * (PerkLevel + 1)
-  If Fullness > BaseWeight
-    HeavyPercent = (Fullness - BaseWeight) / (MaxWeight - BaseWeight)
-  Else
-    HeavyPercent = 0
-  EndIf
-  Return HeavyPercent
-EndFunction
-
-Int Function getHeavyTier(Float afValue)
-  If afValue > 1
-    Return 6
-  ElseIf afValue > 0.8
-    Return 5
-  ElseIf afValue > 0.6
-    Return 4
-  ElseIf afValue > 0.4
-    Return 3
-  ElseIf afValue > 0.2
-    Return 2
-  ElseIf afValue
-    Return 1
-  Else
-    Return 0
-  EndIf
-EndFunction
-
-Int Function getCurrentHeavy(Actor akTarget, Int aiTargetData = 0)
-  Int TargetData
-  If aiTargetData
-    TargetData = aiTargetData
-  Else
-    TargetData = getTargetData(akTarget)
-  EndIf
-  Return JMap.getInt(TargetData, "SCLAppliedHeavyTier")
-EndFunction
-
 Int Function getAllStomachContents(Actor akTarget, Int aiTargetData = 0)
    If !JValue.isMap(aiTargetData)
      aiTargetData = getTargetData(akTarget)
@@ -594,17 +557,6 @@ Int Function getAllStomachContents(Actor akTarget, Int aiTargetData = 0)
    EndIf
    Return Stomach.getAllContents(akTarget, aiTargetData)
  EndFunction
-
-;/Bool Function canStoreItem(Actor akTarget, Form akItem, Int aiTargetData = 0)
-  Int TargetData = getData(akTarget, aiTargetData)
-  If countItemTypes(akTarget, 2) < getTotalPerkLevel(akTarget, "SCLStoredLimitUp", TargetData)  ;Perks will increase this through OnEffectStart/OnEffectFinish chains (maybe)
-    Float WeightValue = genWeightValue(akItem)
-    If JMap.getFlt(TargetData, "STFullness") + WeightValue < getMax(akTarget, TargetData) || SCLSet.GodMode1
-      Return True
-    EndIf
-  EndIf
-  Return False
-EndFunction/;
 
 Bool Function isInContainer(Form akItem)
   Int JM_DataEntry = getItemDatabaseEntry(akItem)
@@ -803,11 +755,6 @@ Function addVomitDamage(Actor akTarget)
   SCLSet.SCL_VomitDamageSpell.cast(akTarget)
 EndFunction
 
-Function addSolidRemoveDamage(Actor akTarget)
-EndFunction
-
-
-
 ;Vomit Functions ***************************************************************
 Function vomitAll(Actor akTarget, Bool ReturnFood = False)
   Stomach.removeAllActorItems(akTarget, ReturnFood)
@@ -817,6 +764,6 @@ Function vomitAmount(Actor akTarget, Float afRemoveAmount, Float afStoredRemoveC
   Stomach.removeAmountActorItems(akTarget, afRemoveAmount, afStoredRemoveChance, afOtherRemoveChance)
 EndFunction
 
-Function vomitSpecificItem(Actor akTarget, Int aiItemType, ObjectReference akReference = None, Form akBaseObject = None, Int aiItemCount = 1, Bool abDestroyBreakdownItems = True)
-  Stomach.removeSpecificActorItems(akTarget, aiItemType, akReference, akBaseObject, aiItemCount, abDestroyBreakdownItems)
+Function vomitSpecificItem(Actor akTarget, String asType, ObjectReference akReference = None, Form akBaseObject = None, Int aiItemCount = 1, Bool abDestroyBreakdownItems = True)
+  Stomach.removeSpecificActorItems(akTarget, "Stomach", asType, akReference, akBaseObject, aiItemCount, abDestroyBreakdownItems)
 EndFunction
