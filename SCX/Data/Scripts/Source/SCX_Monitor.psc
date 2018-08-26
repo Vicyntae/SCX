@@ -39,17 +39,19 @@ Function Setup()
     MyActor = Target
   EndIf
 
-  Int JA_UpdateList = (GetOwningQuest() as SCX_MonitorManager).JA_MonitorUpdatePrioityList
-  Int i
-  Int NumLibs = JArray.count(JA_UpdateList)
-  Notice("Number of Libraries =" + NumLibs)
-  While i < NumLibs
-    SCX_BaseLibrary Lib = JArray.getForm(JA_UpdateList, i) as SCX_BaseLibrary
-    If Lib
-      Lib.monitorSetup(Self, MyActor)
-    EndIf
-    i += 1
-  EndWhile
+  If Target
+    Int JA_UpdateList = (GetOwningQuest() as SCX_MonitorManager).JA_MonitorUpdatePrioityList
+    Int i
+    Int NumLibs = JArray.count(JA_UpdateList)
+    Notice("Number of Libraries =" + NumLibs)
+    While i < NumLibs
+      SCX_BaseLibrary Lib = JArray.getForm(JA_UpdateList, i) as SCX_BaseLibrary
+      If Lib
+        Lib.monitorSetup(Self, MyActor)
+      EndIf
+      i += 1
+    EndWhile
+  EndIf
   RegisterForModEvent("SCX_MonitorUpdate", "OnMonitorUpdate")
   Unlock()
 EndFunction
@@ -121,16 +123,18 @@ EndEvent
 
 Function reloadMaintenence()
   RegisterForModEvent("SCX_MonitorUpdate", "OnMonitorUpdate")
-  Int JA_UpdateList = (GetOwningQuest() as SCX_MonitorManager).JA_MonitorUpdatePrioityList
-  Int i
-  Int NumLibs = JArray.count(JA_UpdateList)
-  While i < NumLibs
-    SCX_BaseLibrary Lib = JArray.getForm(JA_UpdateList, i) as SCX_BaseLibrary
-    If Lib
-      Lib.monitorReloadMaintenence(Self, MyActor)
-    EndIf
-    i += 1
-  EndWhile
+  If MyActor
+    Int JA_UpdateList = (GetOwningQuest() as SCX_MonitorManager).JA_MonitorUpdatePrioityList
+    Int i
+    Int NumLibs = JArray.count(JA_UpdateList)
+    While i < NumLibs
+      SCX_BaseLibrary Lib = JArray.getForm(JA_UpdateList, i) as SCX_BaseLibrary
+      If Lib
+        Lib.monitorReloadMaintenence(Self, MyActor)
+      EndIf
+      i += 1
+    EndWhile
+  EndIf
 EndFunction
 
 Bool Property _Lock = False Auto

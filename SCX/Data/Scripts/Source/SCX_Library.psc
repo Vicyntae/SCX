@@ -117,7 +117,7 @@ EndFunction
 ;-------------------------------------------------------------------------------
 ;Messages
 ;-------------------------------------------------------------------------------
-Function addMessage(String asKey, String asMessageID, String asMessage) Global
+Function addMessage(String asKey, String asMessage) Global
   {Adds string to JMap that can be pulled from using getMessage
   use asKey to categorize them, and they'll be pulled from at random}
   Int MessageList = JDB.solveObj(".SCX_ExtraData.JM_MessageList")
@@ -575,8 +575,11 @@ String Function showArchetypesListMenu(Actor akTarget, Bool abForceChoice = Fals
   Int ArchList = SCXSet.JM_BaseArchetypes
   String Archetype = JMap.nextKey(ArchList)
   While Archetype
-    LM_ST_Transfer.AddEntryItem(Archetype)
-    JArray.addStr(JA_ArchetypeList, Archetype)
+    SCX_BaseItemArchetypes Arch = getSCX_BaseAlias(ArchList, Archetype) as SCX_BaseItemArchetypes
+    If Arch.ShowOnArchetypeMenu(akTarget)
+      LM_ST_Transfer.AddEntryItem(Archetype)
+      JArray.addStr(JA_ArchetypeList, Archetype)
+    endIf
     Archetype = JMap.nextKey(ArchList, Archetype)
   EndWhile
   LM_ST_Transfer.OpenMenu()
@@ -971,7 +974,7 @@ EndFunction
 
 Float Function genWeightValue(Form akItem, Bool abActorAddEquipmentWeight = False)
   Actor akTarget = akItem as Actor
-  Int JM_DB_ItemEntry = getItemDatabaseEntry(akTarget)
+  Int JM_DB_ItemEntry = getItemDatabaseEntry(akItem)
   If !akTarget
     Float WeightValue
     If akItem as ObjectReference

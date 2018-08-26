@@ -370,3 +370,5 @@ Int Property JM_MessageList
     Return MessageList
   EndFunction
 EndProperty
+
+Formlist Property SCX_DebugSpellList Auto

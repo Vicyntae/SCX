@@ -76,6 +76,7 @@ EndFunction
 
 Int Function checkVersion(Int aiStoredVersion)
   {Return the new version and the script will update the stored version}
+  Return 0
 EndFunction
 
 Function reloadMaintenence()
@@ -165,21 +166,24 @@ Int Function getContents(Actor akTarget, String asArchetype, String asType, Int 
   If !JValue.isMap(aiTargetData)
     aiTargetData = getTargetData(akTarget)
   EndIf
-  SCX_BaseItemArchetypes Arch = getSCX_BaseAlias(SCXSet.JM_BaseArchetypes, asType) as SCX_BaseItemArchetypes
-  Int Index = Arch.ItemTypes.Find(asType)
-  If Index != -1
-    Int JM_Contents = JMap.getObj(aiTargetData, Arch.ItemContentsKeys[Index])
-    If !JM_Contents
-      JM_Contents = JMap.object()
-      JMap.setObj(aiTargetData, Arch.ItemContentsKeys[Index], JM_Contents)
+  SCX_BaseItemArchetypes Arch = getSCX_BaseAlias(SCXSet.JM_BaseArchetypes, asArchetype) as SCX_BaseItemArchetypes
+  If Arch
+    Int Index = Arch.ItemTypes.Find(asType)
+    If Index != -1
+      Int JF_Contents = JMap.getObj(aiTargetData, Arch.ItemContentsKeys[Index])
+      If !JF_Contents
+        JF_Contents = JFormMap.object()
+        JMap.setObj(aiTargetData, Arch.ItemContentsKeys[Index], JF_Contents)
+      EndIf
+      Return JF_Contents
     EndIf
-    Return JM_Contents
   EndIf
+  Return 0
 EndFunction
 
 String Function getMessage(String asKey, Int aiIndex = -1, Bool abTagReplace = True, Int JA_Actors = 0, Int aiActorIndex = -1)
   ;Retrieves the specified message type from the database. Will also perform tag replacement.
-  Int JA_MessageList = JDB.solveObj(".SCLExtraData.Messages." + asKey)
+  Int JA_MessageList = JDB.solveObj(".SCLExtraData.JM_MessageList." + asKey)
   Int i
   If aiIndex != -1
     i = aiIndex
@@ -340,14 +344,6 @@ Int Function getItemDatabaseEntry(Form akItem)
     Return JM_DB_ItemEntry
   EndIf
 
-  ;Search for the base item directly
-  If akItem as ObjectReference
-    JM_DB_ItemEntry = JFormDB.findEntry("SCX_ItemDatabase", (akItem as ObjectReference).GetBaseObject())
-    If JM_DB_ItemEntry != 0
-      Return JM_DB_ItemEntry
-    EndIf
-  EndIf
-
   If akItem as Actor
     ;Search for actorbase entry
     ActorBase SearchBase = (akItem as Actor).GetLeveledActorBase()
@@ -359,6 +355,14 @@ Int Function getItemDatabaseEntry(Form akItem)
     ;Search for race entry
     Race SearchRace = SearchBase.GetRace()
     JM_DB_ItemEntry = JFormDB.findEntry("SCX_ItemDatabase", SearchRace)
+    If JM_DB_ItemEntry != 0
+      Return JM_DB_ItemEntry
+    EndIf
+  EndIf
+
+  ;Search for the base item directly
+  If akItem as ObjectReference
+    JM_DB_ItemEntry = JFormDB.findEntry("SCX_ItemDatabase", (akItem as ObjectReference).GetBaseObject())
     If JM_DB_ItemEntry != 0
       Return JM_DB_ItemEntry
     EndIf
@@ -534,6 +538,18 @@ Int Function findBundleEntry(Int JF_ContentsMap, Form akBaseObject)
   Return 0
 EndFunction
 
+ObjectReference Function findRefFromBase(Int JF_Contents, Form akBaseObject)
+  Form i = JFormMap.nextKey(JF_Contents)
+  While i
+    If i as ObjectReference
+      If (i as ObjectReference).GetBaseObject() == akBaseObject
+        Return i as ObjectReference
+      EndIf
+    EndIf
+    i = JFormMap.nextKey(JF_Contents, i)
+  EndWhile
+  Return None
+EndFunction
 ;+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ;Debug Functions
 ;+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -638,4 +654,14 @@ Function Issue(String sMessage, Int iSeverity = 0, Bool bOverride = False)
     Debug.Notification(DebugName + Level + " " + sMessage)
   EndIf
   Debug.Trace(DebugName + sMessage, iSeverity)
+EndFunction
+
+Float StartTime
+Function StartScriptTimer()
+  StartTime = Utility.GetCurrentRealTime()
+EndFunction
+
+Function StopScriptTimer()
+  Note("Time elapsed = " + (Utility.GetCurrentRealTime() - StartTime))
+  StartTime = 0
 EndFunction

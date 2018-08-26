@@ -13,16 +13,19 @@ SCX_BaseBodyEdit Property Belly Auto
 Int ScriptVersion = 1
 Int Function checkVersion(Int aiStoredVersion)
   {Return the new version and the script will update the stored version}
-  If ScriptVersion >= 1 && aiStoredVersion < 1
-    If Belly.CollectKeys.Length == 0
-      Belly.CollectKeys = New String[1]
-      Belly.CollectKeys[0] = "SCLStomachFullness"
-    Else
-      If Belly.CollectKeys.find("SCLStomachFullness") == -1
-        Belly.CollectKeys = PapyrusUtil.PushString(Belly.CollectKeys, "SCLStomachFullness")
-      EndIf
+  If Belly.CollectKeys.Length == 0
+    Belly.CollectKeys = New String[1]
+    Belly.CollectKeys[0] = "SCLStomachFullness"
+  Else
+    If Belly.CollectKeys.find("SCLStomachFullness") == -1
+      Belly.CollectKeys = PapyrusUtil.PushString(Belly.CollectKeys, "SCLStomachFullness")
     EndIf
-
+  EndIf
+  If ScriptVersion >= 1 && aiStoredVersion < 1
+    Note("Adding entries for dummy items.")
+    JFormDB.solveIntSetter(SCLSet.SCL_DummyNotFoodLarge, ".SCX_ItemDatabase.STIsNotFood", 1, True)
+    JFormDB.solveIntSetter(SCLSet.SCL_DummyNotFoodMedium, ".SCX_ItemDatabase.STIsNotFood", 1, True)
+    JFormDB.solveIntSetter(SCLSet.SCL_DummyNotFoodSmall, ".SCX_ItemDatabase.STIsNotFood", 1, True)
   EndIf
   Return ScriptVersion
 EndFunction
@@ -274,7 +277,6 @@ Function sendProcessEvent(Actor akTarget, Float afTimePassed)
 EndFunction
 
 Function monitorUpdate(SCX_Monitor akMonitor, Actor akTarget, Int aiTargetData, Float afTimePassed, Float afCurrentUpdateTime, Bool abDailyUpdate)
-  Note("Monitor update received. Sending process event.")
   sendProcessEvent(akTarget, afTimePassed)
   Bool Digesting = JMap.getInt(aiTargetData, "SCLNowDigesting") as Bool
   Utility.Wait(0.1)
@@ -325,7 +327,7 @@ Function addUIEActorStats(Actor akTarget, UIListMenu UIList, Int JA_OptionList, 
     UIList.AddEntryItem("Edit Base Capacity: " + JMap.getFlt(TargetData, "SCLStomachCapacity"))
     JArray.addStr(JA_OptionList, SKey + ".SCLEditStomachBase")
 
-    UIList.AddEntryItem("Edit Base Capacity: " + JMap.getFlt(TargetData, "SCLStomachCapacity"))
+    UIList.AddEntryItem("Edit Stretchiness: " + JMap.getFlt(TargetData, "SCLStomachStretch"))
     JArray.addStr(JA_OptionList, SKey + ".SCLEditStomachStretch")
   Else
     UIList.AddEntryItem("Base Capacity: " + JMap.getFlt(TargetData, "SCLStomachCapacity"))
@@ -543,11 +545,6 @@ Int Function getOverfullTier(Float afValue, Float afFullness)
   Return Tier
 EndFunction
 
-Int Function getCurrentOverfull(Actor akTarget, Int aiTargetData = 0)
-  Int TargetData = getData(akTarget, aiTargetData)
-  Return JMap.getInt(TargetData, "SCLAppliedOverfullTier")
-EndFunction
-
 Int Function getAllStomachContents(Actor akTarget, Int aiTargetData = 0)
    If !JValue.isMap(aiTargetData)
      aiTargetData = getTargetData(akTarget)
@@ -628,8 +625,8 @@ Function genActorProfile(Actor akTarget, Bool abBasic, Int aiTargetData)
 EndFunction
 
 ;Item Functions ****************************************************************
-Int Function addItem(Actor akTarget, ObjectReference akReference = None, Form akBaseObject = None, Int aiItemType, Int aiStoredItemType = 0, Float afWeightValueOverride = -1.0, Int aiItemCount = 1, Bool abMoveNow = True)
-  Return Stomach.addToContents(akTarget, akReference, akBaseObject, aiItemType, aiStoredItemType, afWeightValueOverride, aiItemCount, abMoveNow)
+Int Function addItem(Actor akTarget, ObjectReference akReference = None, Form akBaseObject = None, String asType, String asStoredArchPlusType = "", Float afWeightValueOverride = -1.0, Int aiItemCount = 1, Bool abMoveNow = True)
+  Return Stomach.addToContents(akTarget, akReference, akBaseObject, asType, asStoredArchPlusType, afWeightValueOverride, aiItemCount, abMoveNow)
 EndFunction
 
 ObjectReference Function findRefFromBase(Int JF_Contents, Form akBaseObject)
@@ -687,6 +684,7 @@ Function updateDamage(Actor akTarget, Int aiTargetData = 0)
   ;Need to rethink how this is applied. Make sure that if the calculated tier is greater that max num of spells,
   ;it picks the highest one
   ;Also remember to add modifier based on current fullness (if > 100, add 1 tier)
+  Note("Updating damage...")
   Int TargetData
   If aiTargetData
     TargetData = aiTargetData
@@ -700,9 +698,12 @@ Function updateDamage(Actor akTarget, Int aiTargetData = 0)
     JMap.setFlt(aiTargetData, "SCLHighestStomachFullness", Fullness)
   EndIf
 
+  Note("Fullness = " + Fullness + ", MaxCap = " + MaxCap)
   If Fullness > MaxCap && canVomit(akTarget)
+    Note(nameGet(akTarget) + " is overfull! Vomiting...")
     Stomach.removeAmountActorItems(akTarget,Fullness * 0.3, 0.2, 0.2)
     addVomitDamage(akTarget)
+    Stomach.updateArchetype(akTarget)
     JMap.setInt(TargetData, "SCLTotalTimesVomited", JMap.getInt(TargetData, "SCLTotalTimesVomited") + 1)
   EndIf
 
@@ -715,6 +716,7 @@ Function updateDamage(Actor akTarget, Int aiTargetData = 0)
 
   Int CurrentOverfull = getCurrentOverfull(akTarget, TargetData)
   If OverfullTier != CurrentOverfull
+    Note("Actor overfull! adding damage spell level " + OverfullTier)
     SCLSet.SCL_OverfullSpellArray[0].cast(akTarget) ;If it's tier 0, it casts the dispel effect and nothing else
     Utility.Wait(0.2)
     SCLSet.SCL_OverfullSpellArray[OverfullTier].cast(akTarget)
@@ -739,6 +741,11 @@ Function updateDamage(Actor akTarget, Int aiTargetData = 0)
     SCLSet.SCL_StoredDamageArray[0].cast(akTarget)
     JMap.setInt(TargetData, "SCLAppliedStorageTier", 0)
   EndIf
+EndFunction
+
+Int Function getCurrentOverfull(Actor akTarget, Int aiTargetData = 0)
+  Int TargetData = getData(akTarget, aiTargetData)
+  Return JMap.getInt(TargetData, "SCLAppliedOverfullTier")
 EndFunction
 
 Int Function getCurrentStorageDamage(Actor akTarget, Int aiTargetData = 0)

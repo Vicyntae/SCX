@@ -3,21 +3,142 @@ ScriptName SCVLibrary Extends SCX_BaseLibrary
 ;Variables and Properties
 ;*******************************************************************************
 SCVSettings Property SCVSet Auto
+SCX_ModConfigMenu Property MCM Auto
 SCVStrugglingArchetype Property Struggling Auto
-SCX_BasePerk Property StruggleSorcery Auto
+SCX_BasePerk _StruggleSorcery
+SCX_BasePerk Property StruggleSorcery
+  SCX_BasePerk Function Get()
+    If !_StruggleSorcery
+      _StruggleSorcery = getSCX_BaseAlias(SCXSet.JM_PerkIDs, "SCV_StruggleSorcery") as SCX_BasePerk
+    EndIf
+    Return _StruggleSorcery
+  EndFunction
+EndProperty
+
+Int ScriptVersion = 0
+Int Function checkVersion(Int aiStoredVersion)
+  If MCM.Pages.find("$SCVMCMSettingsPage") == -1
+    MCM.Pages = PapyrusUtil.PushString(MCM.Pages, "$SCVMCMSettingsPage")
+  EndIf
+  Utility.Wait(1)
+  SCX_BaseLibrary SCLib = JMap.getForm(SCXSet.JM_BaseLibraryList, "SCL_Library") as SCX_BaseLibrary
+  SCX_BaseBodyEdit Belly = getSCX_BaseAlias(SCXSet.JM_BaseBodyEdits, "Belly") as SCX_BaseBodyEdit
+  If Belly
+    If Belly.CollectKeys.Length == 0
+      Int BellyKeys = 3
+      If SCLib
+        BellyKeys -= 1
+      EndIf
+      If SCWLib
+        BellyKeys -= 1
+      EndIf
+      Belly.CollectKeys = Utility.CreateStringArray(BellyKeys, "")
+      Int i
+      If !SCLib
+        Belly.CollectKeys[i] = "SCVStruggleWeightStomach"
+        i += 1
+      EndIf
+      If !SCWLib
+        Belly.CollectKeys[i] = "SCVStruggleWeightColon"
+        i += 1
+      EndIf
+      Belly.CollectKeys[i] = "SCVStruggleWeightUterus"
+    Else
+      If !SCLib && Belly.CollectKeys.find("SCVStruggleWeightStomach") == -1
+        Belly.CollectKeys = PapyrusUtil.PushString(Belly.CollectKeys, "SCVStruggleWeightStomach")
+      EndIf
+      If !SCWLib &&Belly.CollectKeys.find("SCVStruggleWeightColon") == -1
+        Belly.CollectKeys = PapyrusUtil.PushString(Belly.CollectKeys, "SCVStruggleWeightColon")
+      EndIf
+      If Belly.CollectKeys.find("SCVStruggleWeightUterus") == -1
+        Belly.CollectKeys = PapyrusUtil.PushString(Belly.CollectKeys, "SCVStruggleWeightUterus")
+      EndIf
+    EndIf
+  EndIf
+
+  If SCLib
+    SCVSet.SCL_Installed = True
+    SCX_BaseItemArchetypes Stomach = getSCX_BaseAlias(SCXSet.JM_BaseArchetypes, "Stomach") as SCX_BaseItemArchetypes
+    If Stomach
+      Note("Stomach archetype found!")
+      If Stomach.ItemTypes.length == 0
+        Stomach.ItemTypes = New String[1]
+        Stomach.ItemTypes[0] = "Struggle"
+
+        If Stomach.ItemContentsKeys.length == 0
+          Stomach.ItemContentsKeys = New String[1]
+        endIf
+        Stomach.ItemContentsKeys[0] = "SCVStomachStruggleContents"
+
+        If Stomach.ShortDescriptions.length == 0
+          Stomach.ShortDescriptions = New String[1]
+        endIf
+        Stomach.ShortDescriptions[0] = "Stomach Struggling"
+
+        If Stomach.FullDescriptions.length == 0
+          Stomach.FullDescriptions = New String[1]
+        endIf
+        Stomach.FullDescriptions[0] = "Actors currently struggling in this actor's stomach."
+
+      Else
+        Stomach.ItemTypes = PapyrusUtil.PushString(Stomach.ItemTypes, "Struggle")
+        Int ItemTypesLength = Stomach.ItemTypes.length
+        Int PlacedIndex = Stomach.Itemtypes.find("Struggle")
+
+        If Stomach.ItemContentsKeys.length != ItemTypesLength
+          Stomach.ItemContentsKeys = Utility.ResizeStringArray(Stomach.ItemContentsKeys, ItemTypesLength)
+        EndIf
+        Stomach.ItemContentsKeys[PlacedIndex] = "SCVStomachStruggleContents"
+
+        If Stomach.ShortDescriptions.length != ItemTypesLength
+          Stomach.ShortDescriptions = Utility.ResizeStringArray(Stomach.ShortDescriptions, ItemTypesLength)
+        EndIf
+        Stomach.ShortDescriptions[PlacedIndex] = "Stomach Struggling"
+
+        If Stomach.FullDescriptions.length != ItemTypesLength
+          Stomach.FullDescriptions = Utility.ResizeStringArray(Stomach.FullDescriptions, ItemTypesLength)
+        EndIf
+        Stomach.FullDescriptions[PlacedIndex] = "Actors currently struggling in this actor's stomach."
+      EndIf
+    Else
+      Note("Stomach archetype not found!")
+    EndIf
+  Else
+    SCVSet.SCL_Installed = False
+    If Belly.CollectKeys.find("SCVStruggleWeightStomach") == -1
+      Belly.CollectKeys = PapyrusUtil.PushString(Belly.CollectKeys, "SCVStruggleWeightStomach")
+    EndIf
+  EndIf
+
+  SCX_BaseLibrary SCWLib = JMap.getForm(SCXSet.JM_BaseLibraryList, "SCW_Library") as SCX_BaseLibrary
+  If SCWLib
+    Note("SCWLibrary found! Setting up...")
+    SCVSet.SCW_Installed = True
+  Else
+    SCVSet.SCW_Installed = False
+  EndIf
+  If ScriptVersion >= 1 && aiStoredVersion < 1
+  EndIf
+
+  Return ScriptVersion
+EndFunction
+
 ;*******************************************************************************
 ;Library Functions
 ;*******************************************************************************
 Function genActorProfile(Actor akTarget, Bool abBasic, Int aiTargetData)
-  If JMap.getInt(aiTargetData, "SCLBasicProfile") > 0
+  Note("Generating actor profile...")
+  If abBasic
     JMap.setInt(aiTargetData, "SCV_IsOVPred", 0)
     JMap.setInt(aiTargetData, "SCV_OVLevel", 1)
     JMap.setInt(aiTargetData, "SCV_AVLevel", 1)
     JMap.setInt(aiTargetData, "SCV_Allure", 0)
 
     JMap.setInt(aiTargetData, "SCV_ResLevel", 10)
-    JMap.setInt(aiTargetData, "SCV_PredDamageRating", JMap.getInt(aiTargetData, "SCV_PredDamageRating") + 5)
-    JMap.setInt(aiTargetData, "SCV_PreyDamageRating", JMap.getInt(aiTargetData, "SCV_PreyDamageRating") + 10)
+    JMap.setFlt(aiTargetData, "SCV_PredStruggleRating", JMap.getFlt(aiTargetData, "SCV_PredStruggleRating") + 1)
+    JMap.setFlt(aiTargetData, "SCV_PreyStruggleRating", JMap.getFlt(aiTargetData, "SCV_PreyStruggleRating") + 1)
+    JMap.setFlt(aiTargetData, "SCV_StaminaStruggleResist", JMap.getFlt(aiTargetData, "SCV_StaminaStruggleResist") + 1)
+    JMap.setFlt(aiTargetData, "SCV_MagicStruggleResist", JMap.getFlt(aiTargetData, "SCV_MagicStruggleResist") + 1)
 
   Else
     Bool bPred = False
@@ -93,8 +214,12 @@ Function genActorProfile(Actor akTarget, Bool abBasic, Int aiTargetData)
     initializePerk(akTarget, "SCV_ExpectPushback", Chance2)
     initializePerk(akTarget, "SCV_FillingMeal", Chance2)
     initializePerk(akTarget, "SCV_ThrillingStruggle", Chance2)/;
-    JMap.setInt(aiTargetData, "SCV_PredDamageRating", JMap.getInt(aiTargetData, "SCV_PredDamageRating") + 10)
-    JMap.setInt(aiTargetData, "SCV_PreyDamageRating", JMap.getInt(aiTargetData, "SCV_PreyDamageRating") + 10)
+    JMap.setFlt(aiTargetData, "SCV_PredStruggleRating", JMap.getFlt(aiTargetData, "SCV_PredStruggleRating") + 1)
+    JMap.setFlt(aiTargetData, "SCV_PreyStruggleRating", JMap.getFlt(aiTargetData, "SCV_PreyStruggleRating") + 1)
+    ;JMap.setInt(aiTargetData, "SCV_PredDamageRating", JMap.getInt(aiTargetData, "SCV_PredDamageRating") + 1)
+    ;JMap.setInt(aiTargetData, "SCV_PreyDamageRating", JMap.getInt(aiTargetData, "SCV_PreyDamageRating") + 1)
+    JMap.setFlt(aiTargetData, "SCV_StaminaStruggleResist", JMap.getFlt(aiTargetData, "SCV_StaminaStruggleResist") + 1)
+    JMap.setFlt(aiTargetData, "SCV_MagicStruggleResist", JMap.getFlt(aiTargetData, "SCV_MagicStruggleResist") + 1)
     Int B = Utility.RandomInt(0, 10)
     Int AllureLevel
     If B <= 2
@@ -132,11 +257,11 @@ Function addMCMActorInformation(SCX_ModConfigMenu MCM, Int JI_Options, Actor akT
   Bool isOVPred = isOVPred(akTarget, aiTargetData)
   If (isOVPred && isOVPred(PlayerRef)) || DEnable ;Prevents players from viewing stats if they haven't discovered it yet.
     If DEnable
-      JIntMap.setStr(JI_Options, MCM.AddToggleOption("Set Is Oral Pred", isOVPred), "Stats." + SKey + "SCVEditOVPredStatus")
+      JIntMap.setStr(JI_Options, MCM.AddToggleOption("Set Is Oral Pred", isOVPred), "Stats." + SKey + ".SCVEditOVPredStatus")
       JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Oral Vore Level", getVoreLevel(akTarget, "Oral", False, aiTargetData), "{0}"), "Stats." + SKey + ".SCVEditOVLevel")
       JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Extra Oral Vore Level", getVoreLevel(akTarget, "Oral", True, aiTargetData), "{0}"), "Stats." + SKey + ".SCVEditOVLevelExtra")
     Else
-      JIntMap.setStr(JI_Options, MCM.AddToggleOption("Is Oral Pred", isOVPred), "Stats." + SKey + "SCVShowOVPredStatus")
+      JIntMap.setStr(JI_Options, MCM.AddToggleOption("Is Oral Pred", isOVPred), "Stats." + SKey + ".SCVShowOVPredStatus")
       JIntMap.setStr(JI_Options, MCM.AddTextOption("Oral Vore Level", getVoreLevel(akTarget, "Oral", False, aiTargetData)), "Stats." + SKey + ".SCVShowOVLevel")
       JIntMap.setStr(JI_Options, MCM.AddTextOption("Oral Vore Level Extra", getVoreLevel(akTarget, "Oral", True,  aiTargetData)), "Stats." + SKey + ".SCVShowOVLevelExtra")
     EndIf
@@ -148,11 +273,11 @@ Function addMCMActorInformation(SCX_ModConfigMenu MCM, Int JI_Options, Actor akT
   Bool isAVPred = isAVPred(akTarget, aiTargetData)
   If (isAVPred && isAVPred(PlayerRef)) || DEnable ;Prevents players from viewing stats if they haven't discovered it yet.
     If DEnable
-      JIntMap.setStr(JI_Options, MCM.AddToggleOption("Set Is Anal Pred", isAVPred), "Stats." + SKey + "SCVEditAVPredStatus")
+      JIntMap.setStr(JI_Options, MCM.AddToggleOption("Set Is Anal Pred", isAVPred), "Stats." + SKey + ".SCVEditAVPredStatus")
       JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Anal Vore Level", getVoreLevel(akTarget, "Anal", False, aiTargetData), "{0}"), "Stats." + SKey + ".SCVEditAVLevel")
       JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Extra Anal Vore Level", getVoreLevel(akTarget, "Anal", True, aiTargetData), "{0}"), "Stats." + SKey + ".SCVEditAVLevelExtra")
     Else
-      JIntMap.setStr(JI_Options, MCM.AddToggleOption("Is Anal Pred", isAVPred), "Stats." + SKey + "SCVShowAVPredStatus")
+      JIntMap.setStr(JI_Options, MCM.AddToggleOption("Is Anal Pred", isAVPred), "Stats." + SKey + ".SCVShowAVPredStatus")
       JIntMap.setStr(JI_Options, MCM.AddTextOption("Anal Vore Level", getVoreLevel(akTarget, "Anal", False, aiTargetData)), "Stats." + SKey + ".SCVShowAVLevel")
       JIntMap.setStr(JI_Options, MCM.AddTextOption("Anal Vore Level Extra", getVoreLevel(akTarget, "Anal", True, aiTargetData)), "Stats." + SKey + ".SCVShowAVLevelExtra")
     EndIf
@@ -164,11 +289,11 @@ Function addMCMActorInformation(SCX_ModConfigMenu MCM, Int JI_Options, Actor akT
   Bool isUVPred = isUVPred(akTarget, aiTargetData)
   If (isUVPred && isUVPred(PlayerRef)) || DEnable ;Prevents players from viewing stats if they haven't discovered it yet.
     If DEnable
-      JIntMap.setStr(JI_Options, MCM.AddToggleOption("Set Is Unbirth Pred", isUVPred), "Stats." + SKey + "SCVEditUVPredStatus")
+      JIntMap.setStr(JI_Options, MCM.AddToggleOption("Set Is Unbirth Pred", isUVPred), "Stats." + SKey + ".SCVEditUVPredStatus")
       JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Unbirth Vore Level", getVoreLevel(akTarget, "Unbirth", False, aiTargetData), "{0}"), "Stats." + SKey + ".SCVEditUVLevel")
       JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Extra Unbirth Vore Level", getVoreLevel(akTarget, "Unbirth", True, aiTargetData), "{0}"), "Stats." + SKey + ".SCVEditUVLevelExtra")
     Else
-      JIntMap.setStr(JI_Options, MCM.AddToggleOption("Is Unbirth Pred", isUVPred), "Stats." + SKey + "SCVShowUVPredStatus")
+      JIntMap.setStr(JI_Options, MCM.AddToggleOption("Is Unbirth Pred", isUVPred), "Stats." + SKey + ".SCVShowUVPredStatus")
       JIntMap.setStr(JI_Options, MCM.AddTextOption("Unbirth Vore Level", getVoreLevel(akTarget, "Unbirth", False, aiTargetData)), "Stats." + SKey + ".SCVShowUVLevel")
       JIntMap.setStr(JI_Options, MCM.AddTextOption("Unbirth Vore Level Extra", getVoreLevel(akTarget, "Unbirth", True, aiTargetData)), "Stats." + SKey + ".SCVShowUVLevelExtra")
     EndIf
@@ -180,11 +305,11 @@ Function addMCMActorInformation(SCX_ModConfigMenu MCM, Int JI_Options, Actor akT
   Bool isCVPred = isCVPred(akTarget, aiTargetData)
   If (isCVPred && isCVPred(PlayerRef)) || DEnable ;Prevents players from viewing stats if they haven't discovered it yet.
     If DEnable
-      JIntMap.setStr(JI_Options, MCM.AddToggleOption("Set Is Cock Pred", isCVPred), "Stats." + SKey + "SCVEditCVPredStatus")
+      JIntMap.setStr(JI_Options, MCM.AddToggleOption("Set Is Cock Pred", isCVPred), "Stats." + SKey + ".SCVEditCVPredStatus")
       JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Cock Vore Level", getVoreLevel(akTarget, "Cock", False, aiTargetData), "{0}"), "Stats." + SKey + ".SCVEditCVLevel")
       JIntMap.setStr(JI_Options, MCM.AddSliderOption("Edit Extra Cock Vore Level", getVoreLevel(akTarget, "Cock", True, aiTargetData), "{0}"), "Stats." + SKey + ".SCVEditCVLevelExtra")
     Else
-      JIntMap.setStr(JI_Options, MCM.AddToggleOption("Is Cock Pred", isCVPred), "Stats." + SKey + "SCVShowCVPredStatus")
+      JIntMap.setStr(JI_Options, MCM.AddToggleOption("Is Cock Pred", isCVPred), "Stats." + SKey + ".SCVShowCVPredStatus")
       JIntMap.setStr(JI_Options, MCM.AddTextOption("Cock Vore Level", getVoreLevel(akTarget, "Cock", False, aiTargetData)), "Stats." + SKey + ".SCVShowUVLevel")
       JIntMap.setStr(JI_Options, MCM.AddTextOption("Cock Vore Level Extra", getVoreLevel(akTarget, "Cock", True, aiTargetData)), "Stats." + SKey + ".SCVShowCVLevelExtra")
     EndIf
@@ -226,6 +351,28 @@ Function addMCMActorRecords(SCX_ModConfigMenu MCM, Int JI_Options, Actor akTarge
   JIntMap.setStr(JI_Options, MCM.AddTextOption("Daedra Devoured: ", JMap.getInt(aiTargetData, "SCV_NumUndeadEaten")), "Records." + SKey + ".SCVNumDaedraDevoured")
   JIntMap.setStr(JI_Options, MCM.AddTextOption("Undead Devoured: ", JMap.getInt(aiTargetData, "SCV_NumDaedraEaten")), "Records." + SKey + ".SCVNumUndeadDevoured")
   JIntMap.setStr(JI_Options, MCM.AddTextOption("Important Prey Devoured: ", JMap.getInt(aiTargetData, "SCV_NumImportantEaten")), "Records." + SKey + ".SCVNumImportantDevoured")
+EndFunction
+
+Function addMCMOtherOptions(SCX_ModConfigMenu MCM, Int JI_Options, String asPage)
+  String sKey = _getStrKey()
+  If asPage == "$SCVMCMSettingsPagePage"
+    JIntMap.setStr(JI_Options, MCM.AddSliderOption("Oral Predator Percent", SCVSet.OVPredPercent, "{0}%"), "LibOther." + SKey + ".SCVEditOVPredPercent")
+    JIntMap.setStr(JI_Options, MCM.AddSliderOption("Anal Predator Percent", SCVSet.AVPredPercent, "{0}%"), "LibOther." + SKey + ".SCVEditAVPredPercent")
+    JIntMap.setStr(JI_Options, MCM.AddSliderOption("Unbirth Predator Percent", SCVSet.UVPredPercent, "{0}%"), "LibOther." + SKey + ".SCVEditUVPredPercent")
+    JIntMap.setStr(JI_Options, MCM.AddSliderOption("Cock Predator Percent", SCVSet.CVPredPercent, "{0}%"), "LibOther." + SKey + ".SCVEditCVPredPercent")
+
+    JIntMap.setStr(JI_Options, MCM.AddToggleOption("Enable Player Essential Vore", SCVSet.EnablePlayerEssentialVore), "LibOther." + SKey + ".SCVEditPlayerEssentialVore")
+    JIntMap.setStr(JI_Options, MCM.AddToggleOption("Enable NPC Essential Vore", SCVSet.EnableEssentialVore), "LibOther." + SKey + ".SCVEditEssentialVore")
+
+    JIntMap.setStr(JI_Options, MCM.AddToggleOption("Enable Male NPC Preds", SCVSet.EnableMPreds), "LibOther." + SKey + ".SCVEditMPreds")
+    JIntMap.setStr(JI_Options, MCM.AddToggleOption("Enable Male Teammate Preds", SCVSet.EnableMTeamPreds), "LibOther." + SKey + ".SCVEditMTeamPreds")
+
+    JIntMap.setStr(JI_Options, MCM.AddToggleOption("Enable Female NPC Preds", SCVSet.EnableFPreds), "LibOther." + SKey + ".SCVEditFPreds")
+    JIntMap.setStr(JI_Options, MCM.AddToggleOption("Enable Female Teammate Preds", SCVSet.EnableFTeamPreds), "LibOther." + SKey + ".SCVEditFTeamPreds")
+
+    JIntMap.setStr(JI_Options, MCM.AddSliderOption("Struggle Modifier", SCVSet.StruggleMod, "x{1}"), "LibOther." + SKey + ".SCVEditStruggleMod")
+    JIntMap.setStr(JI_Options, MCM.AddSliderOption("Damage Modifier", SCVSet.DamageMod, "x{1}"), "LibOther." + SKey + ".SCVEditDamageMod")
+  EndIf
 EndFunction
 
 Function setSelectOptions(SCX_ModConfigMenu MCM, String asValue, Int aiOption)
@@ -315,6 +462,24 @@ Function setSelectOptions(SCX_ModConfigMenu MCM, String asValue, Int aiOption)
     MCM.ShowMessage("Number of times this actor devoured undead and subdued them using any method.", False, "OK")
   ElseIf asValue == "SCVNumImportantDevoured"
     MCM.ShowMessage("Number of times this actor devoured VIPs (Very Important Prey) and subdued them using any method.", False, "OK")
+  ElseIf asValue == "SCVEditPlayerEssentialVore"
+    SCVSet.EnablePlayerEssentialVore = !SCVSet.EnablePlayerEssentialVore
+    MCM.SetToggleOptionValue(aiOption, SCVSet.EnablePlayerEssentialVore)
+  ElseIf asValue == "SCVEditEssentialVore"
+    SCVSet.EnableEssentialVore = !SCVSet.EnableEssentialVore
+    MCM.SetToggleOptionValue(aiOption, SCVSet.EnableEssentialVore)
+  ElseIf asValue == "SCVEditMPreds"
+    SCVSet.EnableMPreds = !SCVSet.EnableMPreds
+    MCM.SetToggleOptionValue(aiOption, SCVSet.EnableMPreds)
+  ElseIf asValue == "SCVEditMTeamPreds"
+    SCVSet.EnableMTeamPreds = !SCVSet.EnableMTeamPreds
+    MCM.SetToggleOptionValue(aiOption, SCVSet.EnableMTeamPreds)
+  ElseIf asValue == "SCVEditFPreds"
+    SCVSet.EnableFPreds = !SCVSet.EnableFPreds
+    MCM.SetToggleOptionValue(aiOption, SCVSet.EnableFPreds)
+  ElseIf asValue == "SCVEditFTeamPreds"
+    SCVSet.EnableFTeamPreds = !SCVSet.EnableFTeamPreds
+    MCM.SetToggleOptionValue(aiOption, SCVSet.EnableFTeamPreds)
   EndIf
 EndFunction
 
@@ -385,6 +550,48 @@ Float[] Function getSliderOptions(SCX_ModConfigMenu MCM, String asValue)
     SliderValues[2] = 1 ;Interval
     SliderValues[3] = 1 ;Range Min
     SliderValues[4] = 1000 ;Range Max
+  ElseIf asValue == "SCVEditOVPredPercent"
+    Int PredPercent = SCVSet.OVPredPercent
+    SliderValues[0] = PredPercent ;Start Value
+    SliderValues[1] = 30 ;Default Value
+    SliderValues[2] = 1 ;Interval
+    SliderValues[3] = 0 ;Range Min
+    SliderValues[4] = 100 ;Range Max
+  ElseIf asValue == "SCVEditAVPredPercent"
+    Int PredPercent = SCVSet.AVPredPercent
+    SliderValues[0] = PredPercent ;Start Value
+    SliderValues[1] = 30 ;Default Value
+    SliderValues[2] = 1 ;Interval
+    SliderValues[3] = 0 ;Range Min
+    SliderValues[4] = 100 ;Range Max
+  ElseIf asValue == "SCVEditUVPredPercent"
+    Int PredPercent = SCVSet.UVPredPercent
+    SliderValues[0] = PredPercent ;Start Value
+    SliderValues[1] = 30 ;Default Value
+    SliderValues[2] = 1 ;Interval
+    SliderValues[3] = 0 ;Range Min
+    SliderValues[4] = 100 ;Range Max
+  ElseIf asValue == "SCVEditCVPredPercent"
+    Int PredPercent = SCVSet.CVPredPercent
+    SliderValues[0] = PredPercent ;Start Value
+    SliderValues[1] = 30 ;Default Value
+    SliderValues[2] = 1 ;Interval
+    SliderValues[3] = 0 ;Range Min
+    SliderValues[4] = 100 ;Range Max
+  ElseIf asValue == "SCVEditStruggleMod"
+    Int Base = SCVSet.CVPredPercent
+    SliderValues[0] = Base ;Start Value
+    SliderValues[1] = 1 ;Default Value
+    SliderValues[2] = 0.1 ;Interval
+    SliderValues[3] = 0.1 ;Range Min
+    SliderValues[4] = 10 ;Range Max
+  ElseIf asValue == "SCVEditDamageMod"
+    Int Base = SCVSet.CVPredPercent
+    SliderValues[0] = Base ;Start Value
+    SliderValues[1] = 1 ;Default Value
+    SliderValues[2] = 0.1 ;Interval
+    SliderValues[3] = 0.1 ;Range Min
+    SliderValues[4] = 10 ;Range Max
   EndIf
   Return SliderValues
 EndFunction
@@ -418,6 +625,24 @@ Function setSliderOptions(SCX_ModConfigMenu MCM, String asValue, Int aiOption, F
   ElseIf asValue == "SCVEditCVLevelExtra"
     JMap.setInt(ActorData, "SCV_CVLevelExtra", afValue as Int)
     MCM.SetSliderOptionValue(aiOption, afValue, "{0}")
+  ElseIf asValue == "SCVEditOVPredPercent"
+    SCVSet.OVPredPercent = afValue as Int
+    MCM.SetSliderOptionValue(aiOption, afValue, "{0}%")
+  ElseIf asValue == "SCVEditAVPredPercent"
+    SCVSet.AVPredPercent = afValue as Int
+    MCM.SetSliderOptionValue(aiOption, afValue, "{0}%")
+  ElseIf asValue == "SCVEditUVPredPercent"
+    SCVSet.UVPredPercent = afValue as Int
+    MCM.SetSliderOptionValue(aiOption, afValue, "{0}%")
+  ElseIf asValue == "SCVEditCVPredPercent"
+    SCVSet.CVPredPercent = afValue as Int
+    MCM.SetSliderOptionValue(aiOption, afValue, "{0}%")
+  ElseIf asValue == "SCVEditStruggleMod"
+    SCVSet.StruggleMod = afValue
+    MCM.SetSliderOptionValue(aiOption, afValue, "x{1}")
+  ElseIf asValue == "SCVEditDamageMod"
+    SCVSet.DamageMod = afValue
+    MCM.SetSliderOptionValue(aiOption, afValue, "x{1}")
   EndIf
 EndFunction
 
@@ -564,6 +789,30 @@ Function setHighlight(SCX_ModConfigMenu MCM, String asValue, Int aiOption)
     MCM.SetInfoText("Number of times this actor devoured undead and subdued them using any method.")
   ElseIf asValue == "SCVNumImportantDevoured"
     MCM.SetInfoText("Number of times this actor devoured VIPs (Very Important Prey) and subdued them using any method.")
+  ElseIf asValue == "SCVEditOVPredPercent"
+    MCM.SetInfoText("Set percentage of NPCs who are oral predators (NPCs can be multiple types of predator).")
+  ElseIf asValue == "SCVEditAVPredPercent"
+    MCM.SetInfoText("Set percentage of NPCs who are anal predators (NPCs can be multiple types of predator).")
+  ElseIf asValue == "SCVEditUVPredPercent"
+    MCM.SetInfoText("Set percentage of NPCs who are unbirthing predators (NPCs can be multiple types of predator).")
+  ElseIf asValue == "SCVEditCVPredPercent"
+    MCM.SetInfoText("Set percentage of NPCs who are cock predators (NPCs can be multiple types of predator).")
+  ElseIf asValue == "SCVEditStruggleMod"
+    MCM.SetInfoText("Set stamina/magicka damage multiplier for struggling.")
+  ElseIf asValue == "SCVEditDamageMod"
+    MCM.SetInfoText("Set health damage multiplier for struggling.")
+  ElseIf asValue == "SCVEditPlayerEssentialVore"
+    MCM.SetInfoText("Enable the player to devour essential NPCs.")
+  ElseIf asValue == "SCVEditEssentialVore"
+    MCM.SetInfoText("Enable the NPCs to devour essential NPCs.")
+  ElseIf asValue == "SCVEditMPreds"
+    MCM.SetInfoText("Enable male NPC preds.")
+  ElseIf asValue == "SCVEditMTeamPreds"
+    MCM.SetInfoText("Enable male teammate preds.")
+  ElseIf asValue == "SCVEditFPreds"
+    MCM.SetInfoText("Enable female NPC preds.")
+  ElseIf asValue == "SCVEditFTeamPreds"
+    MCM.SetInfoText("Enable female teammate preds.")
   EndIf
 EndFunction
 
@@ -595,7 +844,7 @@ Function addUIEActorStats(Actor akTarget, UIListMenu UIList, Int JA_OptionList, 
   If (isOVPred && isOVPred(PlayerRef)) || DEnable ;Prevents players from viewing stats if they haven't discovered it yet.
     If DEnable
       UIList.AddEntryItem("Set Is Oral Pred: " + isOVPred)
-      JArray.addStr(JA_OptionList, SKey + "SCVEditOVPredStatus")
+      JArray.addStr(JA_OptionList, SKey + ".SCVEditOVPredStatus")
 
       UIList.AddEntryItem("Edit Oral Vore Level: " + getVoreLevel(akTarget, "Oral", False, TargetData))
       JArray.addStr(JA_OptionList, SKey + ".SCVEditOVLevel")
@@ -605,7 +854,7 @@ Function addUIEActorStats(Actor akTarget, UIListMenu UIList, Int JA_OptionList, 
 
     Else
       UIList.AddEntryItem("Is Oral Pred: " + isOVPred)
-      JArray.addStr(JA_OptionList, SKey + "SCVShowOVPredStatus")
+      JArray.addStr(JA_OptionList, SKey + ".SCVShowOVPredStatus")
 
       UIList.AddEntryItem("Oral Vore Level: " + getVoreLevel(akTarget, "Oral", False, TargetData))
       JArray.addStr(JA_OptionList, SKey + ".SCVShowOVLevel")
@@ -638,7 +887,7 @@ Function addUIEActorStats(Actor akTarget, UIListMenu UIList, Int JA_OptionList, 
   If (isAVPred && isAVPred(PlayerRef)) || DEnable ;Prevents players from viewing stats if they haven't discovered it yet.
     If DEnable
       UIList.AddEntryItem("Set Is Anal Pred: " + isAVPred)
-      JArray.addStr(JA_OptionList, SKey + "SCVEditAVPredStatus")
+      JArray.addStr(JA_OptionList, SKey + ".SCVEditAVPredStatus")
 
       UIList.AddEntryItem("Edit Anal Vore Level: " + getVoreLevel(akTarget, "Anal", False, TargetData))
       JArray.addStr(JA_OptionList, SKey + ".SCVEditAVLevel")
@@ -648,7 +897,7 @@ Function addUIEActorStats(Actor akTarget, UIListMenu UIList, Int JA_OptionList, 
 
     Else
       UIList.AddEntryItem("Is Anal Pred: " + isAVPred)
-      JArray.addStr(JA_OptionList, SKey + "SCVShowAVPredStatus")
+      JArray.addStr(JA_OptionList, SKey + ".SCVShowAVPredStatus")
 
       UIList.AddEntryItem("Anal Vore Level: " + getVoreLevel(akTarget, "Anal", False, TargetData))
       JArray.addStr(JA_OptionList, SKey + ".SCVShowAVLevel")
@@ -724,7 +973,7 @@ Function addUIEActorStats(Actor akTarget, UIListMenu UIList, Int JA_OptionList, 
   If (isCVPred && isCVPred(PlayerRef)) || DEnable ;Prevents players from viewing stats if they haven't discovered it yet.
     If DEnable
       UIList.AddEntryItem("Set Is Cock Pred: " + isCVPred)
-      JArray.addStr(JA_OptionList, SKey + "SCVEditCVPredStatus")
+      JArray.addStr(JA_OptionList, SKey + ".SCVEditCVPredStatus")
 
       UIList.AddEntryItem("Edit Cock Vore Level: " + getVoreLevel(akTarget, "Cock", False, TargetData))
       JArray.addStr(JA_OptionList, SKey + ".SCVEditCVLevel")
@@ -734,7 +983,7 @@ Function addUIEActorStats(Actor akTarget, UIListMenu UIList, Int JA_OptionList, 
 
     Else
       UIList.AddEntryItem("Is Cock Pred: " + isCVPred)
-      JArray.addStr(JA_OptionList, SKey + "SCVShowCVPredStatus")
+      JArray.addStr(JA_OptionList, SKey + ".SCVShowCVPredStatus")
 
       UIList.AddEntryItem("Cock Vore Level: " + getVoreLevel(akTarget, "Cock", False, TargetData))
       JArray.addStr(JA_OptionList, SKey + ".SCVShowUVLevel")
@@ -1026,6 +1275,249 @@ Bool Function handleUIEStatFromList(Actor akTarget, String asValue)
   Return False
 EndFunction
 
+Function handleActorExtraction(Actor akSource, Actor akTarget, String asArch, String asType, ObjectReference akPosition)
+  Int TargetData = getTargetData(akTarget)
+  If JMap.hasKey(TargetData, "SCV_Pred")
+    JMap.removeKey(TargetData, "SCV_Pred")
+  EndIf
+  checkPredSpells(akSource)
+  checkPredSpells(akTarget)
+  If akTarget.HasSpell(SCVSet.FollowSpell)
+    akTarget.RemoveSpell(SCVSet.FollowSpell)
+  EndIf
+EndFunction
+
+Function monitorSetup(SCX_Monitor akMonitor, Actor akTarget)
+  If akTarget
+    checkPredAbilities(akTarget)
+    checkPredSpells(akTarget)
+  EndIf
+EndFunction
+
+Function checkPredSpells(Actor akTarget, Int aiTargetData = 0)
+  If !JValue.isMap(aiTargetData)
+    aiTargetData = getTargetData(akTarget)
+  EndIf
+  If hasStrugglePrey(akTarget, aiTargetData)
+    SCVSet
+    If hasOVStrugglePrey(akTarget, aiTargetData)
+      If !akTarget.HasSpell(SCVSet.SCV_HasOVStrugglePrey)
+        akTarget.AddSpell(SCVSet.SCV_HasOVStrugglePrey, True)
+      EndIf
+    Else
+      If akTarget.HasSpell(SCVSet.SCV_HasOVStrugglePrey)
+        akTarget.RemoveSpell(SCVSet.SCV_HasOVStrugglePrey)
+      EndIf
+    EndIf
+    If hasAVStrugglePrey(akTarget, aiTargetData)
+      If !akTarget.HasSpell(SCVSet.SCV_HasAVStrugglePrey)
+        akTarget.AddSpell(SCVSet.SCV_HasAVStrugglePrey, True)
+      EndIf
+    Else
+      If akTarget.HasSpell(SCVSet.SCV_HasAVStrugglePrey)
+        akTarget.RemoveSpell(SCVSet.SCV_HasAVStrugglePrey)
+      EndIf
+    EndIf
+    If hasUVStrugglePrey(akTarget, aiTargetData)
+      If !akTarget.HasSpell(SCVSet.SCV_HasUVStrugglePrey)
+        akTarget.AddSpell(SCVSet.SCV_HasUVStrugglePrey, True)
+      EndIf
+    Else
+      If akTarget.HasSpell(SCVSet.SCV_HasUVStrugglePrey)
+        akTarget.RemoveSpell(SCVSet.SCV_HasUVStrugglePrey)
+      EndIf
+    EndIf
+    If hasCVStrugglePrey(akTarget, aiTargetData)
+      If !akTarget.HasSpell(SCVSet.SCV_HasCVStrugglePrey)
+        akTarget.AddSpell(SCVSet.SCV_HasCVStrugglePrey, True)
+      EndIf
+    Else
+      If akTarget.HasSpell(SCVSet.SCV_HasCVStrugglePrey)
+        akTarget.RemoveSpell(SCVSet.SCV_HasCVStrugglePrey)
+      EndIf
+    EndIf
+  Else
+    If akTarget.HasSpell(SCVSet.SCV_HasStrugglePrey)
+      akTarget.RemoveSpell(SCVSet.SCV_HasStrugglePrey)
+    EndIf
+    If akTarget.HasSpell(SCVSet.SCV_HasOVStrugglePrey)
+      akTarget.RemoveSpell(SCVSet.SCV_HasOVStrugglePrey)
+    EndIf
+    If akTarget.HasSpell(SCVSet.SCV_HasAVStrugglePrey)
+      akTarget.RemoveSpell(SCVSet.SCV_HasAVStrugglePrey)
+    EndIf
+    If akTarget.HasSpell(SCVSet.SCV_HasUVStrugglePrey)
+      akTarget.RemoveSpell(SCVSet.SCV_HasUVStrugglePrey)
+    EndIf
+    If akTarget.HasSpell(SCVSet.SCV_HasCVStrugglePrey)
+      akTarget.RemoveSpell(SCVSet.SCV_HasCVStrugglePrey)
+    EndIf
+  EndIf
+
+  If hasPreyType(akTarget, "Stomach", "Breakdown", aiTargetData)
+    If !akTarget.HasSpell(SCVSet.SCV_HasOVBreakdownPrey)
+      akTarget.AddSpell(SCVSet.SCV_HasOVBreakdownPrey, True)
+    EndIf
+  Else
+    If akTarget.HasSpell(SCVSet.SCV_HasOVBreakdownPrey)
+      akTarget.RemoveSpell(SCVSet.SCV_HasOVBreakdownPrey)
+    EndIf
+  EndIf
+
+  If hasPreyType(akTarget, "Colon", "Breakdown", aiTargetData)
+    If !akTarget.HasSpell(SCVSet.SCV_HasAVBreakdownPrey)
+      akTarget.AddSpell(SCVSet.SCV_HasAVBreakdownPrey, True)
+    EndIf
+  Else
+    If akTarget.HasSpell(SCVSet.SCV_HasAVBreakdownPrey)
+      akTarget.RemoveSpell(SCVSet.SCV_HasAVBreakdownPrey)
+    EndIf
+  EndIf
+
+  If hasPreyType(akTarget, "Uterus", "Breakdown", aiTargetData)
+    If !akTarget.HasSpell(SCVSet.SCV_HasUVBreakdownPrey)
+      akTarget.AddSpell(SCVSet.SCV_HasUVBreakdownPrey, True)
+    EndIf
+  Else
+    If akTarget.HasSpell(SCVSet.SCV_HasUVBreakdownPrey)
+      akTarget.RemoveSpell(SCVSet.SCV_HasUVBreakdownPrey)
+    EndIf
+  EndIf
+
+  If hasPreyType(akTarget, "Scrotum", "Breakdown", aiTargetData)
+    If !akTarget.HasSpell(SCVSet.SCV_HasCVBreakdownPrey)
+      akTarget.AddSpell(SCVSet.SCV_HasCVBreakdownPrey, True)
+    EndIf
+  Else
+    If akTarget.HasSpell(SCVSet.SCV_HasCVBreakdownPrey)
+      akTarget.RemoveSpell(SCVSet.SCV_HasCVBreakdownPrey)
+    EndIf
+  EndIf
+  If isInPred(akTarget)
+    If !akTarget.HasSpell(SCVSet.FollowSpell)
+      akTarget.AddSpell(SCVSet.FollowSpell)
+    EndIf
+  Else
+    If akTarget.HasSpell(SCVSet.FollowSpell)
+      akTarget.RemoveSpell(SCVSet.FollowSpell)
+    EndIf
+  EndIf
+  If isInPred(akTarget) || hasStrugglePrey(akTarget)
+    If !akTarget.HasSpell(SCVSet.IsStrugglingSpell)
+      akTarget.AddSpell(SCVSet.IsStrugglingSpell, True)
+    EndIf
+  Else
+    If akTarget.HasSpell(SCVSet.IsStrugglingSpell)
+      akTarget.RemoveSpell(SCVSet.IsStrugglingSpell)
+    EndIf
+  EndIf
+  checkStruggleSpells(akTarget, aiTargetData)
+EndFunction
+
+Function checkStruggleSpells(Actor akTarget, Int aiTargetData = 0)
+  If !JValue.isMap(aiTargetData)
+    aiTargetData = getTargetData(akTarget)
+  EndIf
+  updateStruggleData(akTarget, aiTargetData = aiTargetData)
+  applyStruggleSpells(akTarget, aiTargetData)
+EndFunction
+
+Function updateStruggleData(Actor akTarget, Float afHigherStruggle = 0.0, Float afHigherDamage = 0.0, Int aiTargetData = 0)
+  If !akTarget
+    Note("akTarget Not Found!")
+  EndIf
+  If !JValue.isMap(aiTargetData)
+    aiTargetData = getTargetData(akTarget, True)
+  EndIf
+  ;Note("Updating struggle data for " + akTarget.GetLeveledActorBase().GetName())
+  Int Contents = SCXLib.getContents(akTarget, "Struggling", "Breakdown", aiTargetData)
+  Float PredStruggleLevel = JMap.getFlt(aiTargetData, "SCV_PredStruggleRating", 1)
+  Float PredDamageLevel = JMap.getFlt(aiTargetData, "SCV_PredDamageRating")
+  ;Int PredStrugglePerk = Constriction.getPerkLevel(akTarget)
+  ;Int PredStrugglePerk = Acid.getPerkLevel(akTarget)
+  Float TotalPreyStruggle = afHigherStruggle
+  Float TotalPreyDamage = afHigherDamage
+  Form i = JFormMap.nextKey(Contents)
+  While i
+    If i as Actor
+      Actor akActor = i as Actor
+      Int PreyData = getTargetData(akActor)
+      Float StruggleAdd
+      Float DamageAdd
+      If PreyData
+        StruggleAdd = JMap.getFlt(PreyData, "SCV_PreyStruggleRating")
+        DamageAdd = JMap.getFlt(PreyData, "SCV_PreyDamageRating")
+      Else
+        StruggleAdd = 1
+      EndIf
+      If !StruggleAdd
+        StruggleAdd = 1
+      EndIf
+      TotalPreyStruggle += StruggleAdd
+      TotalPreyDamage += DamageAdd
+      updateStruggleData(akActor, PredStruggleLevel, PredDamageLevel, PreyData)
+    EndIf
+    i = JFormMap.nextKey(Contents, i)
+  EndWhile
+
+  ;Note(akTarget.GetLeveledActorBase().GetName() + " Struggle = " + TotalPreyStruggle + ", Damage = " + TotalPreyDamage)
+  JMap.setFlt(aiTargetData, "SCV_StruggleRank", TotalPreyStruggle)
+  ;Note(SCVLib.nameGet(akTarget) + " struggle rank = " + TotalPreyStruggle)
+  JMap.setFlt(aiTargetData, "SCV_DamageRank", TotalPreyDamage)
+  ;Note(SCVLib.nameGet(akTarget) + " damage rank = " + TotalPreyDamage)
+EndFunction
+
+Function applyStruggleSpells(Actor akTarget, Int aiTargetData = 0)
+  {Recursive function, deals struggle damage to predator and all prey within them}
+  ;Note("Applying Struggle damage spells to " + akTarget.GetLeveledActorBase().GetName())
+  Int TargetData = getData(akTarget, aiTargetData)
+  Float Struggle = JMap.getFlt(TargetData, "SCV_StruggleRank")
+  Float Damage = JMap.getFlt(TargetData, "SCV_DamageRank")
+  Int MagicPerk = StruggleSorcery.getPerkLevel(akTarget)
+  Int StaminaTier
+  Int MagickaTier
+  Int HealthTier
+  If Struggle
+    Float SReduce = JMap.getFlt(TargetData, "SCV_StaminaStruggleResist", 1)
+    Float SMod = SCVSet.StruggleMod
+    If MagicPerk
+      Float MReduce = JMap.getFlt(TargetData, "SCV_MagicStruggleResist", 1) / 100
+      StaminaTier = Math.Ceiling(((Struggle* SMod) / 2) / SReduce)
+      MagickaTier = Math.Ceiling(((Struggle* SMod) / 2) / MReduce)
+    Else
+      StaminaTier = Math.Ceiling((Struggle* SMod) / SReduce)
+    EndIf
+  EndIf
+  If Damage
+    Float DMod = SCVSet.DamageMod
+    HealthTier = Math.Ceiling(Damage * DMod)
+  EndIf
+  ;Note(akTarget.GetLeveledActorBase().GetName() + "Stamina = " + StaminaTier + ", Magicka = " + MagickaTier + ", Health = " + HealthTier)
+
+  If akTarget.Is3DLoaded()
+    Note("Actor is 3d loaded!")
+  Else
+    Note("Actor is NOT 3d loaded!")
+  EndIf
+  (SCVSet.StruggleStaminaSpells.GetAt(StaminaTier) as Spell).Cast(akTarget)
+  (SCVSet.StruggleMagickaSpells.GetAt(MagickaTier) as Spell).Cast(akTarget)
+  (SCVSet.StruggleHealthSpells.GetAt(HealthTier) as Spell).Cast(akTarget)
+
+  Int Contents = SCXLib.getContents(akTarget, "Struggling", "Breakdown", TargetData)
+  Form i = JFormMap.nextKey(Contents)
+  While i
+    If i as Actor
+      applyStruggleSpells(i as Actor)
+    EndIf
+    i = JFormMap.nextKey(Contents, i) as Actor
+  EndWhile
+EndFunction
+
+Function monitorCleanup(SCX_Monitor akMonitor, Actor akTarget)
+  ;akTarget.RemoveSpell(SCVSet.SCV_HasOVStrugglePrey)
+  ;akTarget.RemoveSpell(SCVSet.SCV_HasAVStrugglePrey)
+EndFunction
+
 Int Function getPreyEnergy(Actor akTarget)
   If StruggleSorcery.getPerkLevel(akTarget) as Bool
     Return akTarget.GetActorValue("Stamina") as Int + akTarget.getActorValue("Magicka") as Int
@@ -1142,19 +1634,7 @@ EndFunction
 
 Actor Function getPred(Actor akPrey, Int aiTargetData = 0)
   Int TargetData = getData(akPrey, aiTargetData)
-  Int JM_TrackingData = JMap.getObj(TargetData, "SCLTrackingData")
-  Return JMap.getForm(JM_TrackingData, "SCV_Pred") as Actor
-EndFunction
-
-Int Function getDamageTier(Actor akTarget)
-  Int i = SCVSet.DamageArray.Length - 1
-  While i
-    If akTarget.HasMagicEffect(SCVSet.DamageArray[i].GetNthEffectMagicEffect(0))
-      Return i
-    EndIf
-    i -= 1
-  EndWhile
-  Return 0
+  Return JMap.getForm(TargetData, "SCV_Pred") as Actor
 EndFunction
 
 Int Function getFrenzyLevel(Actor akTarget)
@@ -1168,33 +1648,29 @@ Int Function getFrenzyLevel(Actor akTarget)
   EndIf/;
 EndFunction
 
-Bool Function isBeingHurt(Actor akTarget)
-  Return akTarget.HasMagicEffectWithKeyword(SCVSet.SCV_DamageKeyword)
-EndFunction
-
 Int Function getNumStrugglePrey(Actor akPred, Int aiTargetData = 0)
   {Returns number of prey currently struggling. Will not get already finished prey}
   Int TargetData = getData(akPred, aiTargetData)
-  Int JF_Contents = getContents(akPred, 8, aiTargetData)
+  Int JF_Contents = getContents(akPred, "Struggling", "Breakdown", aiTargetData)
   Int NumStruggle = JFormMap.count(JF_Contents)
   Return NumStruggle
 EndFunction
 
 Bool Function hasStrugglePrey(Actor akPred, Int aiTargetData = 0)
   Int TargetData = getData(akPred, aiTargetData)
-  Int JF_Contents = getContents(akPred, 8, aiTargetData)
+  Int JF_Contents = getContents(akPred, "Struggling", "Breakdown", aiTargetData)
   Return !JValue.empty(JF_Contents)
 EndFunction
 
 Bool Function hasOVStrugglePrey(Actor akPred, Int aiTargetData = 0)
   {Returns if the actor has prey taken by oral vore}
   Int TargetData = getData(akPred, aiTargetData)
-  Int JF_Contents = getContents(akPred, 8, TargetData)
+  Int JF_Contents = getContents(akPred, "Struggling", "Breakdown", TargetData)
   Form ItemKey = JFormMap.nextKey(JF_Contents)
   While ItemKey
     Int JM_Entry = JFormMap.getObj(JF_Contents, ItemKey)
-    Int ItemType = JMap.getInt(JM_Entry, "StoredItemType")
-    If ItemType == 1 || ItemType == 2
+    String[] ItemType = StringUtil.split(JMap.getStr(JM_Entry, "StoredItemType"), ".")
+    If ItemType[0] == "Stomach"
       Return True
     EndIf
     ItemKey = JFormMap.nextKey(JF_Contents, ItemKey)
@@ -1203,13 +1679,14 @@ Bool Function hasOVStrugglePrey(Actor akPred, Int aiTargetData = 0)
 EndFunction
 
 Bool Function hasAVStrugglePrey(Actor akPred, Int aiTargetData = 0)
+  {Returns if the actor has prey taken by oral vore}
   Int TargetData = getData(akPred, aiTargetData)
-  Int JF_Contents = getContents(akPred, 8, TargetData)
+  Int JF_Contents = getContents(akPred, "Struggling", "Breakdown", TargetData)
   Form ItemKey = JFormMap.nextKey(JF_Contents)
   While ItemKey
     Int JM_Entry = JFormMap.getObj(JF_Contents, ItemKey)
-    Int ItemType = JMap.getInt(JM_Entry, "StoredItemType")
-    If ItemType == 3 || ItemType == 4
+    String[] ItemType = StringUtil.split(JMap.getStr(JM_Entry, "StoredItemType"), ".")
+    If ItemType[0] == "Colon"
       Return True
     EndIf
     ItemKey = JFormMap.nextKey(JF_Contents, ItemKey)
@@ -1217,34 +1694,84 @@ Bool Function hasAVStrugglePrey(Actor akPred, Int aiTargetData = 0)
   Return False
 EndFunction
 
-Bool Function hasPrey(Actor akTarget, Int aiTargetData = 0)
-  Int TargetData = getData(akTarget, aiTargetData)
-  If hasStrugglePrey(akTarget, TargetData) || hasPreyType(akTarget, 1, TargetData) \
-    || hasPreyType(akTarget, 2, TargetData) || hasPreyType(akTarget, 3) || hasPreyType(akTarget, 4)
-    ;Add More Prey locations here as they are added.
-    Return True
-  EndIf
+Bool Function hasUVStrugglePrey(Actor akPred, Int aiTargetData = 0)
+  {Returns if the actor has prey taken by oral vore}
+  Int TargetData = getData(akPred, aiTargetData)
+  Int JF_Contents = getContents(akPred, "Struggling", "Breakdown", TargetData)
+  Form ItemKey = JFormMap.nextKey(JF_Contents)
+  While ItemKey
+    Int JM_Entry = JFormMap.getObj(JF_Contents, ItemKey)
+    String[] ItemType = StringUtil.split(JMap.getStr(JM_Entry, "StoredItemType"), ".")
+    If ItemType[0] == "Uterus"
+      Return True
+    EndIf
+    ItemKey = JFormMap.nextKey(JF_Contents, ItemKey)
+  EndWhile
   Return False
 EndFunction
 
-Int Function getNumPrey(Actor akTarget, Int aiTargetData = 0)
-  Int TargetData = getData(akTarget, aiTargetData)
-  Int NumPrey = getNumStrugglePrey(akTarget, TargetData)
-  NumPrey += getNumPreyType(akTarget, 1, TargetData)
-  NumPrey += getNumPreyType(akTarget, 2, TargetData)
-  NumPrey += getNumPreyType(akTarget, 3, TargetData)
-  NumPrey += getNumPreyType(akTarget, 4, TargetData)
-  ;NumPrey += getNumPreyType(akTarget, 6, TargetData)
-  ;NumPrey += getNumPreyType(akTarget, 7, TargetData)
+Bool Function hasCVStrugglePrey(Actor akPred, Int aiTargetData = 0)
+  {Returns if the actor has prey taken by oral vore}
+  Int TargetData = getData(akPred, aiTargetData)
+  Int JF_Contents = getContents(akPred, "Struggling", "Breakdown", TargetData)
+  Form ItemKey = JFormMap.nextKey(JF_Contents)
+  While ItemKey
+    Int JM_Entry = JFormMap.getObj(JF_Contents, ItemKey)
+    String[] ItemType = StringUtil.split(JMap.getStr(JM_Entry, "StoredItemType"), ".")
+    If ItemType[0] == "SCrotum"
+      Return True
+    EndIf
+    ItemKey = JFormMap.nextKey(JF_Contents, ItemKey)
+  EndWhile
+  Return False
+EndFunction
 
-  ;Add more prey functions here.
+
+Bool Function hasPrey(Actor akTarget, Int aiTargetData = 0)
+  Int TargetData = getData(akTarget, aiTargetData)
+  If hasStrugglePrey(akTarget, TargetData)
+    Return True
+  EndIf
+  Int JM_ArchList = SCXSet.JM_BaseArchetypes
+  String ArchName = JMap.nextKey(JM_ArchList)
+  While ArchName
+    SCX_BaseItemArchetypes Arch = getSCX_BaseAlias(JM_ArchList, ArchName) as SCX_BaseItemArchetypes
+    Int i = Arch.ItemTypes.length
+    While i
+      i -= 1
+      If hasPreyType(akTarget, ArchName, Arch.ItemTypes[i], TargetData)
+        Return True
+      EndIf
+    EndWhile
+    ArchName = JMap.nextKey(JM_ArchList, ArchName)
+  EndWhile
+  Return False
+EndFunction
+
+Int Function getNumPrey(Actor akTarget, Bool abAddStruggle, Int aiTargetData = 0)
+  Int TargetData = getData(akTarget, aiTargetData)
+  Int JM_ArchList = SCXSet.JM_BaseArchetypes
+  String ArchName = JMap.nextKey(JM_ArchList)
+  Int NumPrey
+  If abAddStruggle
+    NumPrey += getNumStrugglePrey(akTarget, TargetData)
+  EndIf
+  While ArchName
+    SCX_BaseItemArchetypes Arch = getSCX_BaseAlias(JM_ArchList, ArchName) as SCX_BaseItemArchetypes
+    Int i = Arch.ItemTypes.length
+    While i
+      i -= 1
+      NumPrey += getNumPreyType(akTarget, ArchName, Arch.ItemTypes[i], TargetData)
+    EndWhile
+    ArchName = JMap.nextKey(JM_ArchList, ArchName)
+  EndWhile
   Return NumPrey
 EndFunction
 
-Int Function getNumPreyType(Actor akTarget, Int aiItemType, Int aiTargetData = 0)
+Int Function getNumPreyType(Actor akTarget, String asArchetype, String asType, Int aiTargetData = 0)
   {Returns number of actors in specified container}
   Int TargetData = getData(akTarget, aiTargetData)
-  Int JF_Contents = getContents(akTarget, aiItemType, TargetData)
+  Int JF_Contents = getContents(akTarget, asArchetype, asType, TargetData)
   Form FormKey = JFormMap.nextKey(JF_Contents)
   Int NumPrey
   While FormKey
@@ -1256,18 +1783,23 @@ Int Function getNumPreyType(Actor akTarget, Int aiItemType, Int aiTargetData = 0
   Return NumPrey
 EndFunction
 
-Bool Function hasPreyType(Actor akTarget, Int aiItemType, Int aiTargetData = 0)
-  Int TargetData = getData(akTarget, aiTargetData)
-  Int JF_Contents = getContents(akTarget, aiItemType, TargetData)
-  Form FormKey = JFormMap.nextKey(JF_Contents)
-  While FormKey
-    If FormKey as Actor
-      Return True
+Bool Function hasPreyType(Actor akTarget, String asArchetype, String asType, Int aiTargetData = 0)
+  If akTarget
+    Int TargetData = getData(akTarget, aiTargetData)
+    Int JF_Contents = getContents(akTarget, asArchetype, asType, TargetData)
+    If JF_Contents
+      Form FormKey = JFormMap.nextKey(JF_Contents)
+      While FormKey
+        If FormKey as Actor
+          Return True
+        EndIf
+        FormKey = JFormMap.nextKey(JF_Contents, FormKey)
+      EndWhile
     EndIf
-    FormKey = JFormMap.nextKey(JF_Contents, FormKey)
-  EndWhile
+  EndIf
   Return False
 EndFunction
+
 
 Bool Function checkPredAbilities(Actor akTarget, Int aiTargetData = 0)
   {Checks to see if the actor is a predator, and adds the spells they need
@@ -1276,42 +1808,58 @@ Bool Function checkPredAbilities(Actor akTarget, Int aiTargetData = 0)
   Bool isPred = False
 
   If isOVPred(akTarget, TargetData)
-    akTarget.AddSpell(SCVSet.SCV_SwallowLethal, False)
-    akTarget.AddSpell(SCVSet.SCV_SwallowNonLethal, False)
-    akTarget.AddSpell(SCVSet.SCV_OVPredMarker, True)
+    Int i = SCVSet.SCV_OVPredSpellList.GetSize()
+    While i
+      i -= 1
+      akTarget.AddSpell(SCVSet.SCV_OVPredSpellList.GetAt(i) as Spell, False)
+    EndWhile
+    akTarget.AddSpell(SCVSet.SCV_OVPredMarker, False)
     isPred = True
   Else
-    akTarget.RemoveSpell(SCVSet.SCV_SwallowLethal)
-    akTarget.RemoveSpell(SCVSet.SCV_SwallowNonLethal)
     akTarget.removespell(SCVSet.SCV_OVPredMarker)
-
   EndIf
 
   If isAVPred(akTarget, TargetData)
-    akTarget.AddSpell(SCVSet.SCV_TakeInLethal, False)
-    akTarget.AddSpell(SCVSet.SCV_TakeInNonLethal, False)
-    akTarget.AddSpell(SCVSet.SCV_AVPredMarker, True)
+    Int i = SCVSet.SCV_AVPredSpellList.GetSize()
+    While i
+      i -= 1
+      akTarget.AddSpell(SCVSet.SCV_AVPredSpellList.GetAt(i) as Spell, False)
+    EndWhile
+    akTarget.AddSpell(SCVSet.SCV_AVPredMarker, False)
 
     isPred = True
   Else
-    akTarget.RemoveSpell(SCVSet.SCV_TakeInLethal)
-    akTarget.RemoveSpell(SCVSet.SCV_TakeInNonLethal)
     akTarget.removespell(SCVSet.SCV_AVPredMarker)
   EndIf
 
-  ;/If isPVPred(akTarget, TargetData)
-    akTarget.AddSpell(SCVSet.SCV_UnPassLethal, False)
-    akTarget.AddSpell(SCVSet.SCV_UnPassNonLethal, False)
-    Int Level = calculatePredLevel(akTarget, "PV", TargetData)
-    Int CurrentLevel = getCurrentPerkLevel(akTarget, "SCV_PVPredLevel")
-    If Level != CurrentLevel
-      akTarget.RemoveSpell(getPerkSpell("SCV_PVPredLevel", CurrentLevel))
-      akTarget.AddSpell(getPerkSpell("SCV_PVPredLevel", Level), False)
-    EndIf
+  If isUVPred(akTarget, TargetData)
+    Int i = SCVSet.SCV_UVPredSpellList.GetSize()
+    While i
+      i -= 1
+      akTarget.AddSpell(SCVSet.SCV_UVPredSpellList.GetAt(i) as Spell, False)
+    EndWhile
+    akTarget.AddSpell(SCVSet.SCV_UVPredMarker, False)
+
     isPred = True
-  EndIf/;
+  Else
+    akTarget.removespell(SCVSet.SCV_UVPredMarker)
+  EndIf
+
+  If isCVPred(akTarget, TargetData)
+    Int i = SCVSet.SCV_CVPredSpellList.GetSize()
+    While i
+      i -= 1
+      akTarget.AddSpell(SCVSet.SCV_CVPredSpellList.GetAt(i) as Spell, False)
+    EndWhile
+    akTarget.AddSpell(SCVSet.SCV_CVPredMarker, False)
+
+    isPred = True
+  Else
+    akTarget.removespell(SCVSet.SCV_CVPredMarker)
+  EndIf
+
   If isPred
-    akTarget.AddSpell(SCVSet.SCV_PredMarker, True)
+    akTarget.AddSpell(SCVSet.SCV_PredMarker, False)
   Else
     akTarget.RemoveSpell(SCVSet.SCV_PredMarker)
   EndIf
@@ -1339,7 +1887,7 @@ EndFunction
 
 Bool Function isPred(Actor akTarget, Int aiTargetData = 0)
   Int TargetData = getData(akTarget, aiTargetData)
-  If isOVPred(akTarget, TargetData) || isAVPred(akTarget, TargetData)
+  If isOVPred(akTarget, TargetData) || isAVPred(akTarget, TargetData) || isUVPred(akTarget, TargetData) || isCVPred(akTarget, TargetData)
     Return True
   Else
     Return False
@@ -1381,6 +1929,7 @@ Function togOVPred(Actor akTarget, Int aiTargetData = 0)
   Else
     JMap.setInt(TargetData, "SCV_IsOVPred", 1)
   EndIf
+  checkPredAbilities(akTarget)
 EndFunction
 
 Function togAVPred(Actor akTarget, Int aiTargetData = 0)
@@ -1390,6 +1939,7 @@ Function togAVPred(Actor akTarget, Int aiTargetData = 0)
   Else
     JMap.setInt(TargetData, "SCV_IsAVPred", 1)
   EndIf
+  checkPredAbilities(akTarget)
 EndFunction
 
 Function togUVPred(Actor akTarget, Int aiTargetData = 0)
@@ -1399,6 +1949,7 @@ Function togUVPred(Actor akTarget, Int aiTargetData = 0)
   Else
     JMap.setInt(TargetData, "SCV_IsUVPred", 1)
   EndIf
+  checkPredAbilities(akTarget)
 EndFunction
 
 Function togCVPred(Actor akTarget, Int aiTargetData = 0)
@@ -1408,6 +1959,7 @@ Function togCVPred(Actor akTarget, Int aiTargetData = 0)
   Else
     JMap.setInt(TargetData, "SCV_IsCVPred", 1)
   EndIf
+  checkPredAbilities(akTarget)
 EndFunction
 
 Function setOVPred(ACtor akTarget, Bool abValue, Int aiTargetData = 0)
@@ -1417,6 +1969,7 @@ Function setOVPred(ACtor akTarget, Bool abValue, Int aiTargetData = 0)
   Else
     JMap.setInt(TargetData, "SCV_IsOVPred", 0)
   EndIf
+  checkPredAbilities(akTarget)
 EndFunction
 
 Function setAVPred(ACtor akTarget, Bool abValue, Int aiTargetData = 0)
@@ -1426,6 +1979,7 @@ Function setAVPred(ACtor akTarget, Bool abValue, Int aiTargetData = 0)
   Else
     JMap.setInt(TargetData, "SCV_IsAVPred", 0)
   EndIf
+  checkPredAbilities(akTarget)
 EndFunction
 
 Function setUVPred(ACtor akTarget, Bool abValue, Int aiTargetData = 0)
@@ -1435,6 +1989,7 @@ Function setUVPred(ACtor akTarget, Bool abValue, Int aiTargetData = 0)
   Else
     JMap.setInt(TargetData, "SCV_IsUVPred", 0)
   EndIf
+  checkPredAbilities(akTarget)
 EndFunction
 
 Function setCVPred(ACtor akTarget, Bool abValue, Int aiTargetData = 0)
@@ -1444,6 +1999,7 @@ Function setCVPred(ACtor akTarget, Bool abValue, Int aiTargetData = 0)
   Else
     JMap.setInt(TargetData, "SCV_IsCVPred", 0)
   EndIf
+  checkPredAbilities(akTarget)
 EndFunction
 
 Bool Function isOVPredBlocked(Actor akTarget, Int aiTargetData = 0)
@@ -1864,7 +2420,7 @@ Function giveAllPreyResExp(Actor akPred, Int aiEXP, Int aiTargetData = 0)
   EndWhile
 EndFunction
 
-;Transfer functions
+;Transfer functions ============================================================
 
 Function transferInventory(Actor akTarget, Actor akSource, String asArchetype)
 	{Moves all items from actor's inventory into a contents array}
@@ -1875,7 +2431,7 @@ Function transferInventory(Actor akTarget, Actor akSource, String asArchetype)
   akSource.RemoveAllItems(Chest, True, True)
 EndFunction
 
-Function transferSCLItems(Actor akTarget, Actor akSource, String asArchetype)
+Function transferSCXItems(Actor akTarget, Actor akSource, String asArchetype)
   {Moves items stored in actor to target NEED TO WRITE}
   SCX_TransferContainer2 Chest = SCXSet.SCX_TransferChest02 as SCX_TransferContainer2
   Chest.TransferArchetype = asArchetype
@@ -1894,8 +2450,8 @@ Function transferSCLItems(Actor akTarget, Actor akSource, String asArchetype)
         String ItemType = JMap.getInt(JM_ItemEntry, "ItemType")
         String[] TypeInfo = StringUtil.split(ItemType, ".")
         JFormMap.removeKey(getContents(akTarget, TypeInfo[0], TypeInfo[1]), ItemKey)
-        If Arch == "Struggling"
-          Struggling.addToContents(akTarget, ItemKey as Actor, ItemKey, 8, abMoveNow = False)
+        If Arch == "Struggling" && TypeInfo[1] == "Breakdown"
+          Struggling.addToContents(akTarget, ItemKey as Actor, ItemKey, "Breakdown", abMoveNow = False)
         ElseIf ItemKey as SCX_Bundle
           Chest.AddItem((ItemKey as SCX_Bundle).ItemForm, (ItemKey as SCX_Bundle).ItemNum, True)
         Else
@@ -1933,6 +2489,159 @@ Actor Function findHighestPred(Actor akTarget)
 	Return akPrey
 EndFunction
 
+Int JA_HandleActors
+Function handleFinishedActor(Actor akTarget)
+  If !JA_HandleActors
+    JA_HandleActors = JValue.Retain(JArray.object())
+  EndIf
+  If JArray.findForm(JA_HandleActors, akTarget) != -1
+    Return
+  EndIf
+  Note("Handling actor " + akTarget.GetLeveledActorBase().GetName())
+  JArray.addForm(JA_HandleActors, akTarget)
+  Int TargetData = getTargetData(akTarget)
+  giveAllPreyResExp(akTarget, getTotalPredLevel(akTarget, TargetData), TargetData)
+  Actor nextPred = getPred(akTarget, TargetData)
+  If nextPred
+    Int nextPredData = getTargetData(nextPred)
+    Int PredContents = getContents(nextPred, "Struggling", "Breakdown", nextPredData)
+    Int JM_PreyEntry = JFormMap.getObj(PredContents, akTarget)
+    String StoredType = JMap.getStr(JM_PreyEntry, "StoredItemType")
+    String[] StoredStrings = StringUtil.Split(StoredType, ".")
+    Int StruggleContents = getContents(nextPred, StoredStrings[0], "Struggle")
+    If JFormMap.hasKey(StruggleContents, akTarget)
+      JFormMap.removeKey(StruggleContents, akTarget)
+    EndIf
+    JFormMap.removeKey(PredContents, akTarget)
+    If nextPred == PlayerRef
+      If StoredStrings[0] == "Stomach"
+        If !hasOVStrugglePrey(PlayerRef)
+          PlayerThoughtDB(nextPred, "SCVOVPredAllStruggleFinished")
+        Else
+          PlayerThoughtDB(nextPred, "SCVOVPredStruggleFinished")
+        EndIf
+      ElseIf StoredStrings[0] == "Colon"
+        If !hasAVStrugglePrey(PlayerRef)
+          PlayerThoughtDB(nextPred, "SCVAVPredAllStruggleFinished")
+        Else
+          PlayerThoughtDB(nextPred, "SCVAVPredStruggleFinished")
+        EndIf
+      ElseIf StoredStrings[0] == "Uterus"
+        If !hasAVStrugglePrey(PlayerRef)
+          PlayerThoughtDB(nextPred, "SCVUVPredAllStruggleFinished")
+        Else
+          PlayerThoughtDB(nextPred, "SCVUVPredStruggleFinished")
+        EndIf
+      ElseIf StoredStrings[0] == "Scrotum"
+        If !hasAVStrugglePrey(PlayerRef)
+          PlayerThoughtDB(nextPred, "SCVCVPredAllStruggleFinished")
+        Else
+          PlayerThoughtDB(nextPred, "SCVCVPredStruggleFinished")
+        EndIf
+      EndIf
+    EndIf
+    If StoredStrings[0] == "Stomach"
+      nextPred.Say(SCVSet.SCV_BurpSound)
+    ElseIf StoredStrings[0] == "Colon"
+      nextPred.Say(SCVSet.SCV_AFinishSound)
+    ElseIf StoredStrings[0] == "Uterus"
+      nextPred.Say(SCVSet.SCV_UVFinishSound)
+    ElseIf StoredStrings[0] == "Scrotum"
+      nextPred.Say(SCVSet.SCV_CVFinishSound)
+    EndIf
+
+    Float WeightValue = SCXLib.genWeightValue(akTarget, True)
+    SCX_BaseItemArchetypes Arch = getSCX_BaseAlias(SCXSet.JM_BaseArchetypes, StoredStrings[0]) as SCX_BaseItemArchetypes
+    If Arch
+      Arch.addToContents(nextPred, akTarget, None, StoredStrings[1])
+      Arch.updateArchetype(nextPred)
+    ElseIf StoredStrings[1] == "Stored"
+      Struggling.addToContents(nextPred, akTarget, None, "Stored")
+      Struggling.updateArchetype(nextPred)
+    Else
+      akTarget.Kill(nextPred)
+      transferInventory(nextPred, akTarget, "Struggling")
+      transferSCXItems(nextPred, akTarget, "Struggling")
+    EndIf
+
+    If StoredStrings[0] == "Stomach" && StoredStrings[1] == "Breakdown"
+      Int NumItems = Math.Floor(WeightValue / 5)
+      If SCVSet.SCL_Installed
+        SCLSettings SCLSet = JMap.getForm(SCXSet.JM_QuestList, "SCLSettings") as SCLSettings
+        While NumItems
+          nextPred.EquipItem(SCLSet.SCL_DummyNotFoodLarge)
+          NumItems -= 1
+        EndWhile
+      Else
+        nextPred.EquipItem(SCVSet.SCV_DummyFoodItem)
+      EndIf
+    EndIf
+    JMap.setInt(nextPredData, "SCV_NumPreyEaten", JMap.getInt(nextPredData, "SCV_NumPreyEaten") + 1)
+    If StoredStrings[0] == "Stomach"
+      JMap.setInt(nextPredData, "SCV_NumOVPreyEaten", JMap.getInt(nextPredData, "SCV_NumOVPreyEaten") + 1)
+    ElseIf StoredStrings[0] == "Colon"
+      JMap.setInt(nextPredData, "SCV_NumAVPreyEaten", JMap.getInt(nextPredData, "SCV_NumAVPreyEaten") + 1)
+    ElseIf StoredStrings[0] == "Uterus"
+      JMap.setInt(nextPredData, "SCV_NumUVPreyEaten", JMap.getInt(nextPredData, "SCV_NumUVPreyEaten") + 1)
+    ElseIf StoredStrings[0] == "Scrotum"
+      JMap.setInt(nextPredData, "SCV_NumCVPreyEaten", JMap.getInt(nextPredData, "SCV_NumCVPreyEaten") + 1)
+    EndIf
+    Race PreyRace = akTarget.GetRace()
+    ;/If PreyRace.HasKeyword(SCXSet.ActorTypeNPC)
+      JMap.setInt(nextPredData, "SCV_NumHumansEaten", JMap.getInt(nextPredData, "SCV_NumHumansEaten") + 1)
+      If getPerkLevel(nextPred, "SCV_FollowerofNamira") >= 2
+        Notice("Adding Items to " + nameGet(akTarget) + " for finishing human prey.")
+        insertLeveledItems(nextPred, StoredStrings[0], StoredStrings[1], SCVSet.SCV_LeveledHumanItems)
+      EndIf
+    ElseIf PreyRace.HasKeyword(SCVSet.ActorTypeDragon)
+      JMap.setInt(nextPredData, "SCV_NumDragonsEaten", JMap.getInt(nextPredData, "SCV_NumDragonsEaten") + 1)
+      If getPerkLevel(nextPred, "SCV_DragonDevourer") >= 3
+        Notice("Adding Items to " + nameGet(akTarget) + " for finishing dragon prey.")
+        insertLeveledItems(nextPred, StoredStrings[0], StoredStrings[1], SCVSet.SCV_LeveledDragonItems)
+      EndIf
+    ElseIf PreyRace.HasKeyword(SCVSet.ActorTypeDwarven)
+      JMap.setInt(nextPredData, "SCV_NumDwarvenEaten", JMap.getInt(nextPredData, "SCV_NumDwarvenEaten") + 1)
+      If getPerkLevel(nextPred, "SCV_MetalMuncher") >= 2
+        Notice("Adding Items to " + nameGet(akTarget) + " for finishing dwarven prey.")
+        insertLeveledItems(nextPred, StoredStrings[0], StoredStrings[1], SCVSet.SCV_LeveledDwarvenItems)
+      EndIf
+    ElseIf PreyRace.HasKeyword(SCVSet.ActorTypeGhost)
+      JMap.setInt(nextPredData, "SCV_NumGhostsEaten", JMap.getInt(nextPredData, "SCV_NumGhostsEaten") + 1)
+      If getPerkLevel(nextPred, "SCV_SpiritSwallower") >= 2
+        Notice("Adding Items to " + nameGet(akTarget) + " for finishing ghost prey.")
+        insertLeveledItems(nextPred, StoredStrings[0], StoredStrings[1], SCVSet.SCV_LeveledGhosttems)
+      EndIf
+    ElseIf PreyRace.HasKeyword(SCVSet.ActorTypeUndead)
+      JMap.setInt(nextPredData, "SCV_NumUndeadEaten", JMap.getInt(nextPredData, "SCV_NumUndeadEaten") + 1)
+      If getPerkLevel(nextPred, "SCV_ExpiredEpicurian") >= 2
+        Notice("Adding Items to " + nameGet(akTarget) + " for finishing undead prey.")
+        insertLeveledItems(nextPred, StoredStrings[0], StoredStrings[1], SCVSet.SCV_LeveledUndeadItems)
+      EndIf
+    ElseIf PreyRace.HasKeyword(SCVSet.ActorTypeDaedra)
+      JMap.setInt(nextPredData, "SCV_NumDaedraEaten", JMap.getInt(nextPredData, "SCV_NumDaedraEaten") + 1)
+      If getPerkLevel(nextPred, "SCV_DaedraDieter") >= 2
+        Notice("Adding Items to " + nameGet(akTarget) + " for finishing daedra prey.")
+        insertLeveledItems(nextPred, StoredStrings[0], StoredStrings[1], SCVSet.SCV_LeveledDaedraItems)
+      EndIf
+    EndIf/;
+    If nextPred == PlayerRef && isBossActor(akTarget)
+      insertLeveledItems(nextPred, StoredStrings[0], StoredStrings[1], SCVSet.SCV_LeveledBossItems)
+    EndIf
+    Arch.updateArchetype(nextPred)
+    checkPredSpells(nextPred)
+    sendStruggleFinishEvent(nextPred, akTarget, StoredStrings[0], StoredStrings[1])
+    giveVoreExp(nextPred, Struggling.getVoretypeFromArch(StoredStrings[0]), WeightValue as Int)
+  Else
+    If hasStrugglePrey(akTarget)
+      Struggling.removeAllActorItems(akTarget)
+    EndIf
+  EndIf
+  checkPredSpells(akTarget)
+  Int d = JArray.findForm(JA_HandleActors, akTarget)
+  If d != -1
+    JArray.eraseIndex(JA_HandleActors, d)
+  EndIf
+EndFunction
 ;/Bool preyHandlingLocked = False
 Int Function insertPrey(Actor akPred, Actor akPrey, Int aiItemType, Bool abFriendly, Bool abPlayAnimation = True)
   ;Consider putting these big functions into a mutlithreaded context
@@ -2091,15 +2800,12 @@ Bool Function isImportant(Actor akTarget)
   Return False
 EndFunction
 
-Function removeStruggleSpells(Actor akTarget)
-  SCVSet.SCV_StruggleDispel.cast(akTarget)
-EndFunction
-
-Bool Function sendStruggleFinishEvent(Actor akPred, Actor akPrey, Int aiItemType)
+Bool Function sendStruggleFinishEvent(Actor akPred, Actor akPrey, String asArchetype, String asType)
   Int FinishEvent = ModEvent.Create("SCV_StruggleFinish")
   ModEvent.PushForm(FinishEvent, akPred)
   ModEvent.PushForm(FinishEvent, akPrey)
-  ModEvent.pushInt(FinishEvent, aiItemType)
+  ModEvent.PushString(FinishEvent, asArchetype)
+  ModEvent.PushString(FinishEvent, asType)
   Return ModEvent.Send(FinishEvent)
 EndFunction
 
@@ -2151,247 +2857,8 @@ Int Function getPreyDifficulty()
   Return 30
 EndFunction
 
-Int Function genSoulSize(Actor akTarget)
-  Race TargetRace = akTarget.GetRace()
-  If TargetRace.HasKeyword(SCVSet.ActorTypeDwarven)
-    Return 0
-  EndIf
-  Int Level = akTarget.GetLevel()
-  If TargetRace.HasKeyword(SCVSet.ActorTypeDragon)
-    Return 8
-  ElseIf isBossActor(akTarget)
-    Return 7
-  ElseIf TargetRace.HasKeyword(SCVSet.ActorTypeNPC)
-    Return 6
-  ElseIf Level >= 38
-    Return 5
-  ElseIf Level >= 28
-    Return 4
-  ElseIf Level >= 16
-    Return 3
-  ElseIf Level >= 4
-    Return 2
-  ElseIf Level >= 1
-    Return 1
-  EndIf
+Function insertLeveledItems(Actor akTarget, String asArchetype, String asType, Form asItems)
 EndFunction
-
-Int Function fillGem(Actor akPred, Actor akPrey, Int aiTargetData = 0)
-  {Searchs for a gem to fill and does so. Returns what kind of gem was filled.
-  Returns -1 if a new gem was created, -2 if no gem was filled.}
-  Int TargetData = getData(akPred, aiTargetData)
-  Int PerkLevel = getPerkLevel(akPred, "SCV_PitOfSouls") - 1 ;We subtract one because the first level enables the function, the others increase gem size
-  If PerkLevel < 0
-    Return 0
-  EndIf
-  Notice("Bonus Level = " + PerkLevel)
-  Int SoulSize = genSoulSize(akPrey)
-  If SoulSize == 0  ;Has no soul to begin with
-    Return -2
-  EndIf
-  Notice("Soul Size = " + SoulSize)
-  Int[] Gems = getGemList(akPred, aiTargetData = TargetData)
-  Int i = SoulSize
-  i -= PerkLevel
-  If i <= -1  ;Inserts SoulGem fragment if they have the lv 2 perk
-    Notice("Soul fill size is less than 0! Inserting new gem...")
-    ;addItem(akPred, akBaseObject = getGemTypes(0)[Utility.RandomInt(0, 4)], aiItemType = 2)
-    Return -1
-  EndIf
-  Int Num = Gems.length - 1
-  Bool Done
-  While i < Num && !Done
-    If Gems[i] > 0  ;If there is a gem with size equal to or greater than the soul size
-      Notice("Found fillable gem! Soul Size = " + SoulSize + ", Gem size = " + i)
-      Float GemChance = JMap.getFlt(TargetData, "SCVGemBonusChance")
-      Int AddGem = 1
-      If GemChance > 0
-        Bool Failed
-        While !Failed && AddGem < 11  ;Max 10 addition gems
-          Float Success = Utility.RandomInt()
-          If Success < GemChance
-            AddGem += 1
-          Else
-            Failed = True
-          EndIf
-        EndWhile
-      EndIf
-      replaceGem(akPred, i, SoulSize, aiNum = AddGem, aiTargetData = TargetData) ;input the original size and the new size
-      Done = True
-    Else
-      i += 1
-    EndIf
-  EndWhile
-  JMap.setInt(TargetData, "SCV_SoulsCaptured", JMap.getINt(TargetData, "SCV_SoulsCaptured") + 1)
-  Return i
-EndFunction
-
-Bool Function hasGems(Actor akTarget, Int aiItemType = 2, Int aiTargetData = 0)
-  {Returns if actor has valid soul gems located in contents 2, or whatever override
-  Excludes dragon gems, as they can't be filled again}
-  Int TargetData = getData(akTarget, aiTargetData)
-  Int Contents = getContents(akTarget, aiItemType, TargetData)
-  If JValue.empty(Contents)
-    Return False
-  EndIf
-  Form i = JFormMap.nextKey(Contents)
-  While i
-    Form BaseObject
-    If i as SCX_Bundle
-      BaseObject = (i as SCX_Bundle).ItemForm
-    ElseIf i as ObjectReference
-      BaseObject = (i as ObjectReference).GetBaseObject()
-    EndIf
-    If BaseObject
-      If BaseObject == SCVSet.SCV_SplendidSoulGem
-        Return True
-      ElseIf BaseObject == SCVSet.SoulGemBlack || BaseObject == SCVSet.SoulGemBlackFilled
-        Return True
-      ElseIf BaseObject == SCVSet.SoulGemGrand || BaseObject == SCVSet.SoulGemGrandFilled
-        Return True
-      ElseIf BaseObject == SCVSet.SoulGemGreater || BaseObject == SCVSet.SoulGemGreaterFilled
-        Return True
-      ElseIf BaseObject == SCVSet.SoulGemCommon || BaseObject == SCVSet.SoulGemCommonFilled
-        Return True
-      ElseIf BaseObject == SCVSet.SoulGemLesser || BaseObject == SCVSet.SoulGemLesserFilled
-        Return True
-      ElseIf BaseObject == SCVSet.SoulGemPetty || BaseObject == SCVSet.SoulGemPettyFilled
-        Return True
-      ElseIf BaseObject == SCVSet.SoulGemPiece001  || BaseObject == SCVSet.SoulGemPiece002 || BaseObject == SCVSet.SoulGemPiece003 || BaseObject == SCVSet.SoulGemPiece004 || BaseObject == SCVSet.SoulGemPiece005
-        Return True
-      EndIf
-    EndIf
-    i = JFormMap.nextKey(Contents, i)
-  EndWhile
-  Return False
-EndFunction
-
-
-Int[] Function getGemList(Actor akTarget, Int aiItemType = 2, Int aiTargetData = 0)
-  {Returns array of soul gems located in contents 2, or whatever override
-  Excludes dragon gems, as they can't be filled again}
-  Int TargetData = getData(akTarget, aiTargetData)
-  Int[] ReturnArray = New Int[8]
-  Int Contents = getContents(akTarget, aiItemType, TargetData)
-  If JValue.empty(Contents)
-    Return ReturnArray
-  EndIf
-  Form i = JFormMap.nextKey(Contents)
-  While i
-    Form BaseObject
-    If i as SCX_Bundle
-      BaseObject = (i as SCX_Bundle).ItemForm
-    ElseIf i as ObjectReference
-      BaseObject = (i as ObjectReference).GetBaseObject()
-    EndIf
-    If BaseObject
-      If BaseObject == SCVSet.SCV_SplendidSoulGem
-        ReturnArray[7] = ReturnArray[7] + 1
-      ElseIf BaseObject == SCVSet.SoulGemBlack || BaseObject == SCVSet.SoulGemBlackFilled
-        ReturnArray[6] = ReturnArray[6] + 1
-      ElseIf BaseObject == SCVSet.SoulGemGrand || BaseObject == SCVSet.SoulGemGrandFilled
-        ReturnArray[5] = ReturnArray[5] + 1
-      ElseIf BaseObject == SCVSet.SoulGemGreater || BaseObject == SCVSet.SoulGemGreaterFilled
-        ReturnArray[4] = ReturnArray[4] + 1
-      ElseIf BaseObject == SCVSet.SoulGemCommon || BaseObject == SCVSet.SoulGemCommonFilled
-        ReturnArray[3] = ReturnArray[3] + 1
-      ElseIf BaseObject == SCVSet.SoulGemLesser || BaseObject == SCVSet.SoulGemLesserFilled
-        ReturnArray[2] = ReturnArray[2] + 1
-      ElseIf BaseObject == SCVSet.SoulGemPetty || BaseObject == SCVSet.SoulGemPettyFilled
-        ReturnArray[1] = ReturnArray[1] + 1
-      ElseIf BaseObject == SCVSet.SoulGemPiece001  || BaseObject == SCVSet.SoulGemPiece002 || BaseObject == SCVSet.SoulGemPiece003 || BaseObject == SCVSet.SoulGemPiece004 || BaseObject == SCVSet.SoulGemPiece005
-        ReturnArray[0] = ReturnArray[0] + 1
-      EndIf
-    EndIf
-    i = JFormMap.nextKey(Contents, i)
-  EndWhile
-  Return ReturnArray
-EndFunction
-
-Form[] Function getGemTypes(Int aiSize)
-  {Filled gems put in first}
-  Form[] ReturnArray = new Form[5]
-  If aiSize == 0
-    ReturnArray[0] = SCVSet.SoulGemPiece001
-    ReturnArray[1] = SCVSet.SoulGemPiece002
-    ReturnArray[2] = SCVSet.SoulGemPiece003
-    ReturnArray[3] = SCVSet.SoulGemPiece004
-    ReturnArray[4] = SCVSet.SoulGemPiece005
-  ElseIf aiSize == 1
-    ReturnArray[0] = SCVSet.SoulGemPettyFilled
-    ReturnArray[1] = SCVSet.SoulGemPetty
-  ElseIf aiSize == 2
-    ReturnArray[0] = SCVSet.SoulGemLesserFilled
-    ReturnArray[1] = SCVSet.SoulGemLesser
-  ElseIf aiSize == 3
-    ReturnArray[0] = SCVSet.SoulGemCommonFilled
-    ReturnArray[1] = SCVSet.SoulGemCommon
-  ElseIf aiSize == 4
-    ReturnArray[0] = SCVSet.SoulGemGreaterFilled
-    ReturnArray[1] = SCVSet.SoulGemGreater
-  ElseIf aiSize == 5
-    ReturnArray[0] = SCVSet.SoulGemGrandFilled
-    ReturnArray[1] = SCVSet.SoulGemGrand
-  ElseIf aiSize == 6
-    ReturnArray[0] = SCVSet.SoulGemBlackFilled
-    ReturnArray[1] = SCVSet.SoulGemBlack
-  ElseIf aiSize == 7
-    ReturnArray[0] = SCVSet.SCV_SplendidSoulGem
-  ElseIf aiSize == 8
-    ReturnArray[0] = SCVSet.SCV_DragonGem
-  EndIf
-  Return ReturnArray
-EndFunction
-
-Function replaceGem(Actor akTarget, Int aiOriginal, Int aiNew, Int aiItemType = 2, Int aiNum = 1, Int aiTargetData = 0)
-  ;/Int TargetData = getData(akTarget, aiTargetData)
-  Form[] OriginalArray = getGemTypes(aiOriginal)
-  Form[] NewArray = getGemTypes(aiNew)
-  If aiOriginal == 0
-    Form Fragment = findGemFragment(akTarget, aiItemType, TargetData)
-    If Fragment
-      RemoveItem(akTarget, akBaseObject = Fragment, aiItemType = aiItemType, abDelete = True, aiTargetData = TargetData)
-    Else
-      Return
-    EndIf
-  ElseIf !removeItem(akTarget, akBaseObject = OriginalArray[1], aiItemType = aiItemType, abDelete = True, aiTargetData = TargetData)
-    If !removeItem(akTarget, akBaseObject = OriginalArray[0], aiItemType = aiItemType, abDelete = True, aiTargetData = TargetData)
-      Return
-    EndIf
-  EndIf
-  Notice("Default soul size for new gem = " + (OriginalArray[0] as SoulGem).GetSoulSize())
-  addItem(akTarget, akBaseObject = NewArray[0], aiItemType = aiItemType, aiItemCount = aiNum)  ;Choose filled gem/;
-EndFunction
-
-Form Function findGemFragment(Actor akTarget, Int aiItemType, Int aiTargetData = 0)
-  Int TargetData = getData(akTarget, aiTargetData)
-  Int Contents = getContents(akTarget, aiItemType, TargetData)
-  Form SearchForm = JFormMap.nextKey(Contents)
-  While SearchForm
-    If SearchForm as ObjectReference
-      Form CurrentForm
-      If SearchForm as SCX_Bundle
-        CurrentForm = (SearchForm as SCX_Bundle).ItemForm
-      Else
-        CurrentForm = (SearchForm as ObjectReference).GetBaseObject()
-      EndIf
-      If CurrentForm == SCVSet.SoulGemPiece001
-        Return SCVSet.SoulGemPiece001
-      ElseIf CurrentForm == SCVSet.SoulGemPiece002
-        Return SCVSet.SoulGemPiece002
-      ElseIf CurrentForm == SCVSet.SoulGemPiece003
-        Return SCVSet.SoulGemPiece003
-      ElseIf CurrentForm == SCVSet.SoulGemPiece004
-        Return SCVSet.SoulGemPiece004
-      ElseIf CurrentForm == SCVSet.SoulGemPiece005
-        Return SCVSet.SoulGemPiece005
-      EndIf
-    EndIf
-    SearchForm = JFormMap.nextKey(Contents, SearchForm)
-  EndWhile
-  Return None
-EndFunction
-
 ;Perk Functions ****************************************************************
 ;/Perk List
 SCV_IntenseHunger
@@ -2544,115 +3011,6 @@ Function showFullActorStatus(Actor akTarget)
     Debug.MessageBox(FinalString)
   EndIf
 EndFunction/;
-
-Function checkDebugSpells()
-  If SCXSet.DebugEnable
-    If !PlayerRef.HasSpell(SCVSet.SCV_MaxPredSpell)
-      PlayerRef.AddSpell(SCVSet.SCV_MaxPredSpell, True)
-    EndIf
-
-    If !PlayerRef.HasSpell(SCVSet.SCV_ForceOVoreSpell)
-      PlayerRef.AddSpell(SCVSet.SCV_ForceOVoreSpell, True)
-    EndIf
-    If !PlayerRef.HasSpell(SCVSet.SCV_ForceOVoreSpellNonLethal)
-      PlayerRef.AddSpell(SCVSet.SCV_ForceOVoreSpellNonLethal, True)
-    EndIf
-
-    If !PlayerRef.HasSpell(SCVSet.SCV_ForceRandomOVoreSpell)
-      PlayerRef.AddSpell(SCVSet.SCV_ForceRandomOVoreSpell, True)
-    EndIf
-    If !PlayerRef.HasSpell(SCVSet.SCV_ForceRandomOVoreSpellNonLethal)
-      PlayerRef.AddSpell(SCVSet.SCV_ForceRandomOVoreSpellNonLethal, True)
-    EndIf
-
-    If !PlayerRef.HasSpell(SCVSet.SCV_ForceSpecificOVoreSpell)
-      PlayerRef.AddSpell(SCVSet.SCV_ForceSpecificOVoreSpell, True)
-    EndIf
-    If !PlayerRef.HasSpell(SCVSet.SCV_ForceSpecificOVoreSpellNonLethal)
-      PlayerRef.AddSpell(SCVSet.SCV_ForceSpecificOVoreSpellNonLethal, True)
-    EndIf
-
-    If !PlayerRef.HasSpell(SCVSet.SCV_ForceAVoreSpell)
-      PlayerRef.AddSpell(SCVSet.SCV_ForceAVoreSpell, True)
-    EndIf
-    If !PlayerRef.HasSpell(SCVSet.SCV_ForceAVoreSpellNonLethal)
-      PlayerRef.AddSpell(SCVSet.SCV_ForceAVoreSpellNonLethal, True)
-    EndIf
-
-    If !PlayerRef.HasSpell(SCVSet.SCV_ForceRandomAVoreSpell)
-      PlayerRef.AddSpell(SCVSet.SCV_ForceRandomAVoreSpell, True)
-    EndIf
-    If !PlayerRef.HasSpell(SCVSet.SCV_ForceRandomAVoreSpellNonLethal)
-      PlayerRef.AddSpell(SCVSet.SCV_ForceRandomAVoreSpellNonLethal, True)
-    EndIf
-
-    If !PlayerRef.HasSpell(SCVSet.SCV_ForceSpecificAVoreSpell)
-      PlayerRef.AddSpell(SCVSet.SCV_ForceSpecificAVoreSpell, True)
-    EndIf
-    If !PlayerRef.HasSpell(SCVSet.SCV_ForceSpecificAVoreSpellNonLethal)
-      PlayerRef.AddSpell(SCVSet.SCV_ForceSpecificAVoreSpellNonLethal, True)
-    EndIf
-  Else
-    If PlayerRef.HasSpell(SCVSet.SCV_MaxPredSpell)
-      PlayerRef.RemoveSpell(SCVSet.SCV_MaxPredSpell)
-    EndIf
-
-    If PlayerRef.HasSpell(SCVSet.SCV_ForceOVoreSpell)
-			PlayerRef.RemoveSpell(SCVSet.SCV_ForceOVoreSpell)
-		EndIf
-    If PlayerRef.HasSpell(SCVSet.SCV_ForceOVoreSpellNonLethal)
-      PlayerRef.RemoveSpell(SCVSet.SCV_ForceOVoreSpellNonLethal)
-    EndIf
-
-    If PlayerRef.HasSpell(SCVSet.SCV_ForceRandomOVoreSpell)
-      PlayerRef.removespell(SCVSet.SCV_ForceRandomOVoreSpell)
-    EndIf
-    If PlayerRef.HasSpell(SCVSet.SCV_ForceRandomOVoreSpellNonLethal)
-      PlayerRef.removespell(SCVSet.SCV_ForceRandomOVoreSpellNonLethal)
-    EndIf
-
-    If PlayerRef.HasSpell(SCVSet.SCV_ForceSpecificOVoreSpell)
-      PlayerRef.removespell(SCVSet.SCV_ForceSpecificOVoreSpell)
-    EndIf
-    If PlayerRef.HasSpell(SCVSet.SCV_ForceSpecificOVoreSpellNonLethal)
-      PlayerRef.removespell(SCVSet.SCV_ForceSpecificOVoreSpellNonLethal)
-    EndIf
-
-    If PlayerRef.HasSpell(SCVSet.SCV_ForceAVoreSpell)
-      PlayerRef.RemoveSpell(SCVSet.SCV_ForceAVoreSpell)
-    EndIf
-    If PlayerRef.HasSpell(SCVSet.SCV_ForceAVoreSpellNonLethal)
-      PlayerRef.RemoveSpell(SCVSet.SCV_ForceAVoreSpellNonLethal)
-    EndIf
-
-    If PlayerRef.HasSpell(SCVSet.SCV_ForceRandomAVoreSpell)
-      PlayerRef.removespell(SCVSet.SCV_ForceRandomAVoreSpell)
-    EndIf
-    If PlayerRef.HasSpell(SCVSet.SCV_ForceRandomAVoreSpellNonLethal)
-      PlayerRef.removespell(SCVSet.SCV_ForceRandomAVoreSpellNonLethal)
-    EndIf
-
-    If PlayerRef.HasSpell(SCVSet.SCV_ForceSpecificAVoreSpell)
-      PlayerRef.removespell(SCVSet.SCV_ForceSpecificAVoreSpell)
-    EndIf
-    If PlayerRef.HasSpell(SCVSet.SCV_ForceSpecificAVoreSpellNonLethal)
-      PlayerRef.removespell(SCVSet.SCV_ForceSpecificAVoreSpellNonLethal)
-    EndIf
-  EndIf
-EndFunction
-
-Function addToFollow(Actor akPrey)
-  akPrey.AddSpell(SCVSet.FollowSpell, True)
-EndFunction
-
-Function removeFromFollow(Actor akPrey)
-  akPrey.RemoveSpell(SCVSet.FollowSpell)
-EndFunction
-
-Function ResumeFollowPred()
-  Int Handle = ModEvent.Create("SCV_PauseFollow")
-  ModEvent.send(Handle)
-EndFunction
 
 ;/String Function getPerkDescription(String asPerkID, Int aiPerkLevel = 0)
   If asPerkID == "SCV_IntenseHunger"

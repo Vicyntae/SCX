@@ -228,7 +228,9 @@ State Equipment
       UpperThreshold = (CurrentEquip[2] as SCX_BaseEquipment).Threshold
       LowerThreshold = (CurrentEquip[1] as SCX_BaseEquipment).Threshold
     EndIf
-    (CurrentEquip[1] as SCX_BaseEquipment).ApplyMorphs(MyActor, CurrentSize)
+    If CurrentEquip[1] as SCX_BaseEquipment
+      (CurrentEquip[1] as SCX_BaseEquipment).ApplyMorphs(MyActor, CurrentSize)
+    EndIf
     RegisterForSingleUpdate(0.1)
   EndEvent
 EndState
@@ -239,17 +241,19 @@ Function purgeMethods()
   If SLIF_Main.HasScale(MyActor, FullModKey, sKey)
     SLIF_Main.resetActor(MyActor, FullModKey, sKey)
   EndIf
-  SCX_BaseEquipment Equip = CurrentEquip[1] as SCX_BaseEquipment
-  If Equip
-    If MyActor.IsEquipped(Equip)
-      Equip.removeMorphs(MyActor)
-      MyActor.UnequipItem(Equip, False, True)
-      MyActor.RemoveItem(Equip, 1, True)
+  If CurrentEquip.Length
+    SCX_BaseEquipment Equip = CurrentEquip[1] as SCX_BaseEquipment
+    If Equip
+      If MyActor.IsEquipped(Equip)
+        Equip.removeMorphs(MyActor)
+        MyActor.UnequipItem(Equip, False, True)
+        MyActor.RemoveItem(Equip, 1, True)
+      EndIf
     EndIf
+    CurrentEquip[0] = None
+    CurrentEquip[1] = None
+    CurrentEquip[2] = None
   EndIf
-  CurrentEquip[0] = None
-  CurrentEquip[1] = None
-  CurrentEquip[2] = None
 EndFunction
 
 ;+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

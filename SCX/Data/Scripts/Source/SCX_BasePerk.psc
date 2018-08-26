@@ -73,8 +73,24 @@ Bool Function showPerk(Actor akTarget)
   Return True
 EndFunction
 
+Function addMCMOptions(SCX_ModConfigMenu MCM, Int JI_OptionIndexes, Int JM_SelectedPerkLevel)
+  If showPerk(MCM.SelectedActor)
+    Int MaxValue = AbilityArray.Length - 1
+    Int CurrentPerkValue = getPerkLevel(MCM.SelectedActor)
+    If !CurrentPerkValue
+      MCM.AddEmptyOption()
+    Else
+      JIntMap.setStr(JI_OptionIndexes, MCM.AddMenuOption(getPerkName(0), ""), "Perk." + _getStrKey() + "." + "Taken" + "." + JMap.getInt(JM_SelectedPerkLevel, _getStrKey()))
+    EndIf
+    If CurrentPerkValue == MaxValue
+      JIntMap.setStr(JI_OptionIndexes, MCM.AddTextOption(getPerkName(CurrentPerkValue), "Taken"), "Perk." + _getStrKey() + "." + "Max" + "." + CurrentPerkValue)
+    Else
+      JIntMap.setStr(JI_OptionIndexes, MCM.AddTextOption(getPerkName(CurrentPerkValue + 1), "Take Perk"), "Perk." + _getStrKey() + "." + "Take" + "." + CurrentPerkValue + 1)
+    EndIf
+  EndIf
+EndFunction
 
-Function setSelectOptions(SCX_ModConfigMenu MCM, String asValue, Int aiOption)
+Function setMCMSelectOptions(SCX_ModConfigMenu MCM, String asValue, Int aiOption)
   Int CurrentPerkValue = getPerkLevel(MCM.SelectedActor)
   If canTake(MCM.SelectedActor, CurrentPerkValue + 1, SCXSet.DebugEnable)
     If MCM.ShowMessage(getDescription(CurrentPerkValue + 1) + "\n Requirements: " + getRequirements(CurrentPerkValue + 1) + "\n Take Perk " + getPerkName(CurrentPerkValue + 1) + "?", True, "Yes", "No")

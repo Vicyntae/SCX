@@ -15,6 +15,10 @@ String[] Property FullDescriptions Auto
 
 String Property TotalWeightKey Auto
 
+Bool Function ShowOnArchetypeMenu(Actor akActor, String asMenu = "")
+  Return True
+EndFunction
+
 Float Function updateArchetype(Actor akTarget, Int aiTargetData = 0)
   If !JValue.isMap(aiTargetData)
     aiTargetData = getTargetData(akTarget)
@@ -93,19 +97,22 @@ Int Function getAllContents(Actor akTarget, Int aiTargetData = 0)
   Int JF_CompiledContents = JValue.retain(JFormMap.object())
   Int j = 0
   Int NumItemTypes = ItemTypes.length
+  String sKey = _getStrKey()
   While j < NumItemTypes
-    Int JF_Contents = getContents(akTarget, ItemTypes[j], aiTargetData)
+    Int JF_Contents = getContents(akTarget, sKey, ItemTypes[j], aiTargetData)
     JFormMap.addPairs(JF_CompiledContents, JF_Contents, True)
     j += 1
   EndWhile
   j = 0
   NumItemTypes = ItemStoredTypes.length
   While j < NumItemTypes
-    Int JF_Contents = getContents(akTarget, ItemStoredTypes[j], aiTargetData)
+    String[] ArchPair = StringUtil.split(ItemStoredTypes[j], ".")
+    Int JF_Contents = getContents(akTarget, ArchPair[0], ArchPair[1], aiTargetData)
     Form FormKey = JFormMap.nextKey(JF_Contents)
     While FormKey
       Int JM_ItemEntry = JFormMap.getObj(JF_Contents, FormKey)
-      If ItemTypes.Find(JMap.getInt(JM_ItemEntry, "StoredItemType")) != -1
+      String[] StoredArch = StringUtil.Split(JMap.getStr(JM_ItemEntry, "StoredItemType"), ".")
+      If StoredArch[0] == sKey && ItemTypes.Find(StoredArch[1]) != -1
         JFormMap.setObj(JF_CompiledContents, FormKey, JM_ItemEntry)
       Endif
       FormKey = JFormMap.nextKey(JF_Contents)
@@ -168,4 +175,76 @@ String Function getItemListDesc(Form akItem, Int JM_ItemEntry)
   Float WeightValue = JMap.getFlt(JM_ItemEntry, "WeightValue")
   String Finished = Name + ": " + Desc + ": " + WeightValue
   Return Finished
+EndFunction
+
+Bool Function removeFromContents(Actor akTarget, ObjectReference akReference = None, Form akBaseObject = None, String asType, Int aiItemCount = 1, Bool abDelete = False, Int aiTargetData = 0)
+  {Removes an item from an actor's stomach.
+  akBaseObject will remove an item from either a reference or an SCL Bundle, whichever is applicable.
+  Will continue to do so as long as it finds items and aiItemCount > 0
+  Putting in a SCLBundle will remove that entire bundle
+  abDelete will delete any ObjectReference affected by this
+  Suggested that you update the actor after this
+  Returns whether the item was removed successfully}
+  If !JValue.isMap(aiTargetData)
+    aiTargetData = getTargetData(akTarget)
+  EndIf
+  Int Contents = getContents(akTarget, _getStrKey(), asType, aiTargetData)
+  If !akReference && !akBaseObject
+    Issue("No valid item given for removeItem. Returning...")
+    Return False
+  ElseIf akReference
+    If JFormMap.removeKey(Contents, akReference)
+      If akReference as SCX_Bundle || abDelete
+        akReference.DeleteWhenAble()
+        If akReference as Actor
+          SCX_Library.eraseActorData(akReference as Actor)
+        EndIf
+      EndIf
+      Return True
+    EndIf
+  ElseIf akBaseObject
+    Int Remaining = aiItemCount
+    Int Removed
+    SCX_Bundle Bundle = findBundle(Contents, akBaseObject)
+    If Bundle
+      Int Stored = Bundle.ItemNum
+      If Stored > Remaining
+        Stored -= Remaining
+        Removed += Remaining
+        Remaining = 0
+        Bundle.ItemNum = Stored
+        Int JM_ItemEntry = JFormMap.getObj(Contents, Bundle)
+        JMap.setFlt(JM_ItemEntry, "WeightValue", JMap.getFlt(JM_ItemEntry, "ActiveWeightValue") + (JMap.getFlt(JM_ItemEntry, "IndvWeightValue") * ((Bundle).ItemNum - 1)))
+      ElseIf Stored <= Remaining
+        Removed += Stored
+        Remaining -= Stored
+        JFormMap.removeKey(Contents, Bundle)
+        Bundle.DeleteWhenAble()
+      EndIf
+    EndIf
+    If Remaining
+      Bool Done = False
+      While Remaining && !Done
+        ObjectReference Ref = findRefFromBase(Contents, akBaseObject)
+        If Ref
+          JFormMap.removeKey(Contents, Ref)
+          If abDelete
+            Ref.DeleteWhenAble()
+            If akReference as Actor
+              SCX_Library.eraseActorData(Ref as Actor)
+            EndIf
+          EndIf
+          Removed += 1
+          Remaining -= 1
+        Else
+          Done = True
+        EndIf
+      EndWhile
+    EndIf
+    If Removed > 0
+      Return True
+    Else
+      Return False
+    EndIf
+  EndIf
 EndFunction

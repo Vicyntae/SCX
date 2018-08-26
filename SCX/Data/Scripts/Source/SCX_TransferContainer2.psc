@@ -2,7 +2,11 @@ ScriptName SCX_TransferContainer2 Extends ObjectReference
 Int DMID = 4
 String Property DebugName
   String Function Get()
-    Return "[SCX_Transfer2 " + Target.GetLeveledActorBase().GetName() + "] "
+    If Target
+      Return "[SCX_Transfer2 " + Target.GetLeveledActorBase().GetName() + "] "
+    Else
+      Return "[SCX_Transfer2] "
+    EndIf
   EndFunction
 EndProperty
 SCX_Library Property SCXLib Auto
@@ -13,7 +17,7 @@ Int TargetData
 Bool Locked
 String Archetype
 SCX_BaseItemArchetypes ArchetypeForm
-Bool EnableDebugMessages
+Bool EnableDebugMessages = True
 
 
 ObjectReference Property akReturn Auto  ;Emergency place to put items in case something goes wrong
@@ -27,10 +31,13 @@ String Property Destination Auto
 
 String Property TransferArchetype
   Function Set(String asArchetype)
+    Note("asArchetype = " + asArchetype)
     SCX_BaseItemArchetypes Arch = SCXLib.getSCX_BaseAlias(SCXSet.JM_BaseArchetypes, asArchetype) as SCX_BaseItemArchetypes
     If Arch
       ArchetypeForm = Arch
       Archetype = asArchetype
+    Else
+      Note("Archetype not found!")
     EndIf
   EndFunction
 EndProperty
@@ -55,6 +62,7 @@ EndFunction
 Event OnItemAdded(Form akBaseItem, int aiItemCount, ObjectReference akItemReference, ObjectReference akSourceContainer)
   UpdateLock()
   If ArchetypeForm
+    Note("Archetype file found! Adding Item...")
     ArchetypeForm.addTransferItem(Target, akItemReference, akBaseItem, aiItemCount)
   Else
     Issue("Archetype file not found! Returning item...", 1)

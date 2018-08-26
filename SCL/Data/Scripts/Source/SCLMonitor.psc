@@ -34,7 +34,8 @@ Int JF_AddQueue
 Int AddQueueNum = 0
 Event OnObjectEquipped(Form akBaseObject, ObjectReference akReference)
   If akBaseObject as Potion || akBaseObject as Ingredient
-    Int JM_Entry = SCXLib.getItemDatabaseEntry(akBaseObject)
+    Int JM_Entry = SCLib.getItemDatabaseEntry(akBaseObject)
+    Note("Item equipped: " + akBaseObject.GetName() + ". Entry found: " + JValue.isExists(JM_Entry))
     If JMap.getInt(JM_Entry, "STIsNotFood") == 0 || (akBaseObject as Potion).IsPoison()
       SCLib.Notice(akBaseObject.GetName() + " was eaten!")
       Bool FirstItem
@@ -68,7 +69,13 @@ Event OnObjectEquipped(Form akBaseObject, ObjectReference akReference)
       EndIf
       Form ItemKey = JFormMap.nextKey(JF_AddQueue)
       While ItemKey
-        SCLib.AddItem(GetTargetActor(), ItemKey as ObjectReference, ItemKey, 1, aiItemCount = JFormMap.getInt(JF_AddQueue, ItemKey, 1))
+        Form Base
+        If ItemKey as ObjectReference
+          Base = (ItemKey as ObjectReference).GetBaseObject()
+        Else
+          Base = ItemKey
+        EndIf
+        SCLib.Stomach.addToContents(GetTargetActor(), ItemKey as ObjectReference, Base, "Breakdown", aiItemCount = JFormMap.getInt(JF_AddQueue, ItemKey, 1))
         ItemKey = JFormMap.nextKey(JF_AddQueue, ItemKey)
       EndWhile
       SCLib.Stomach.updateArchetype(GetTargetActor())

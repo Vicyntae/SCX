@@ -61,6 +61,9 @@ EndFunction
 Function addMCMActorRecords(SCX_ModConfigMenu MCM, Int JI_Options, Actor akTarget, Int aiTargetData = 0)
 EndFunction
 
+Function addMCMOtherOptions(SCX_ModConfigMenu MCM, Int JI_Options, String asPage)
+EndFunction
+
 Function setSelectOptions(SCX_ModConfigMenu MCM, String asValue, Int aiOption)
 EndFunction
 
@@ -88,6 +91,9 @@ String[] Function getMCMMenuOptions02(SCX_ModConfigMenu MCM, String asValue)
 EndFunction
 
 Function setMenuOptions(SCX_ModConfigMenu MCM, String asValue, Int aiOption, Int aiIndex)
+EndFunction
+
+Function setInputOptions(SCX_ModConfigMenu MCM, String asValue, Int aiOption, String a_input)
 EndFunction
 
 Function setHighlight(SCX_ModConfigMenu MCM, String asValue, Int aiOption)

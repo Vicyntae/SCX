@@ -264,11 +264,11 @@ Function addMCMOptions(SCX_ModConfigMenu MCM, Int JI_OptionIndexes)
   JIntMap.setStr(JI_OptionIndexes, MCM.AddSliderOption(Name + " Increment", Increment, "{1}"), "BodyEdit." + asEdit + "." + "Increment")
   JIntMap.setStr(JI_OptionIndexes, MCM.AddToggleOption(Name + " Enable Increment", EnableIncrement), "BodyEdit." + asEdit + "." + "EnableIncrement")
   If SCXSet.DebugEnable
-    JIntMap.setStr(JI_OptionIndexes, MCM.AddMenuOption(Name + "Collection Keys", ""), "BodyEdit." + asEdit + "." + "ShowCollectionKeys")
+    JIntMap.setStr(JI_OptionIndexes, MCM.AddMenuOption(Name + " Collection Keys", ""), "BodyEdit." + asEdit + "." + "ShowCollectionKeys")
     ;JIntMap.setStr(JI_OptionIndexes, AddInputOption(Name + "Add New Collection Key", ""), "BodyEdit." + asEdit + "." + "AddCollectionKey")
     MCM.AddEmptyOption()
 
-    JIntMap.setStr(JI_OptionIndexes, MCM.AddMenuOption(Name + "Creature Races", ""), "BodyEdit." + asEdit + "." + "ShowCreatureRaces")
-    JIntMap.setStr(JI_OptionIndexes, MCM.AddTextOption(Name + "Add Selected Actor's Race", ""), "BodyEdit." + asEdit + "." + "AddCreatureRace")
+    JIntMap.setStr(JI_OptionIndexes, MCM.AddMenuOption(Name + " Creature Races", ""), "BodyEdit." + asEdit + "." + "ShowCreatureRaces")
+    JIntMap.setStr(JI_OptionIndexes, MCM.AddTextOption(Name + " Add Selected Actor's Race", ""), "BodyEdit." + asEdit + "." + "AddCreatureRace")
   EndIf
 EndFunction

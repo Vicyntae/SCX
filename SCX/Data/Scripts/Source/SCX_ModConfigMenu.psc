@@ -68,10 +68,10 @@ Event OnPageReset(string a_page)
   ElseIf a_page == "$SCXMCMOtherSettingsPage"
     SetCursorFillMode(LEFT_TO_RIGHT)
     AddKeyMapOptionST("MenuKeyPick_KM", "$SCXMCMMenuKeyOption_KM", SCXSet.MenuKey)
-    AddKeyMapOptionST("StatusKeyPick_KM", "$SCXMCMStatusKeyOption_KM", SCXSet.MenuKey)
+    AddKeyMapOptionST("StatusKeyPick_KM", "$SCXMCMStatusKeyOption_KM", SCXSet.StatusKey)
     AddToggleOptionST("DebugEnable_TOG", "$SCXMCMDebugEnableOption_TOG", SCXSet.DebugEnable)
-
-
+  ElseIf a_page
+    addOtherOptions(a_page)
   EndIf
 EndEvent
 
@@ -158,6 +158,18 @@ Function addStatOptions()
   EndIf
 EndFunction
 
+Function addOtherOptions(String asPage)
+  Int JM_MainLibList = SCXSet.JM_BaseLibraryList
+  String LibraryName = JMap.nextKey(JM_MainLibList)
+  While LibraryName
+    SCX_BaseLibrary Lib = JMap.getForm(JM_MainLibList, LibraryName) as SCX_BaseLibrary
+    If Lib
+      Lib.addMCMOtherOptions(Self, JI_OptionIndexes, asPage)
+    EndIf
+    LibraryName = JMap.nextKey(JM_MainLibList, LibraryName)
+  EndWhile
+EndFunction
+
 Function addRecordsOptions()
   Int JM_MainLibList = SCXSet.JM_BaseLibraryList
   String LibraryName = JMap.nextKey(JM_MainLibList)
@@ -216,19 +228,8 @@ Function addPerkOptions()
     Quest OwnedQuest = JMap.getForm(JM_Perks, asPerkID) as Quest
     If OwnedQuest
       SCX_BasePerk PerkBase = OwnedQuest.GetAliasByName(asPerkID) as SCX_BasePerk
-      If PerkBase && PerkBase.showPerk(SelectedActor)
-        Int MaxValue = PerkBase.AbilityArray.Length - 1
-        Int CurrentPerkValue = PerkBase.getPerkLevel(SelectedActor)
-        If !CurrentPerkValue
-          AddEmptyOption()
-        Else
-          JIntMap.setStr(JI_OptionIndexes, AddMenuOption(PerkBase.getPerkName(0), ""), "Perk." + asPerkID + "." + "Taken" + "." + JMap.getInt(JM_SelectedPerkLevel, asPerkID))
-        EndIf
-        If CurrentPerkValue == MaxValue
-          JIntMap.setStr(JI_OptionIndexes, AddMenuOption(PerkBase.getPerkName(CurrentPerkValue), "Taken"), "Perk." + asPerkID + "." + "Max" + "." + CurrentPerkValue)
-        Else
-          JIntMap.setStr(JI_OptionIndexes, AddMenuOption(PerkBase.getPerkName(CurrentPerkValue + 1), "Take Perk"), "Perk." + asPerkID + "." + "Take" + "." + CurrentPerkValue + 1)
-        EndIf
+      If PerkBase
+        PerkBase.addMCMOptions(Self, JI_OptionIndexes, JM_SelectedPerkLevel)
       EndIf
     EndIF
     asPerkID = JMap.nextKey(JM_Perks, asPerkID)
@@ -255,7 +256,7 @@ Event OnOptionSliderOpen(int a_option)
   String[] KeyCodes = StringUtil.Split(KeyList, ".")
   Float[] Values
   String Type = KeyCodes[0]
-  If Type == "Stats" || Type == "Records"
+  If Type == "Stats" || Type == "Records" || Type == "LibOther"
     SCX_BaseLibrary Lib = JMap.getForm(SCXSet.JM_BaseLibraryList, KeyCodes[1]) as SCX_BaseLibrary
     Values = Lib.getSliderOptions(Self, KeyCodes[2])
   ElseIf Type == "BodyEdit"
@@ -272,7 +273,7 @@ Event OnOptionSliderAccept(int a_option, float a_value)
   String KeyList = JIntMap.getStr(JI_OptionIndexes, a_option)
   String[] KeyCodes = StringUtil.Split(KeyList, ".")
   String Type = KeyCodes[0]
-  If Type == "Stats" || Type == "Records"
+  If Type == "Stats" || Type == "Records" || Type == "LibOther"
     SCX_BaseLibrary Lib = JMap.getForm(SCXSet.JM_BaseLibraryList, KeyCodes[1]) as SCX_BaseLibrary
     Lib.setSliderOptions(Self, KeyCodes[2], a_option, a_value)
   ElseIf Type == "BodyEdit"
@@ -286,7 +287,7 @@ Event OnOptionMenuOpen(int a_option)
   String KeyList = JIntMap.getStr(JI_OptionIndexes, a_option)
   String[] KeyCodes = StringUtil.Split(KeyList, ".")
   String Type = KeyCodes[0]
-  If Type == "Stats" || Type == "Records"
+  If Type == "Stats" || Type == "Records" || Type == "LibOther"
     SCX_BaseLibrary Lib = JMap.getForm(SCXSet.JM_BaseLibraryList, KeyCodes[1]) as SCX_BaseLibrary
     Int[] Values = Lib.getMCMMenuOptions01(Self, KeyCodes[2])
     SetMenuDialogStartIndex(Values[0])
@@ -319,7 +320,7 @@ Event OnOptionMenuAccept(int a_option, int a_index)
   String KeyList = JIntMap.getStr(JI_OptionIndexes, a_option)
   String[] KeyCodes = StringUtil.Split(KeyList, ".")
   String Type = KeyCodes[0]
-  If Type == "Stats" || Type == "Records"
+  If Type == "Stats" || Type == "Records" || Type == "LibOther"
     SCX_BaseLibrary Lib = JMap.getForm(SCXSet.JM_BaseLibraryList, KeyCodes[1]) as SCX_BaseLibrary
     Lib.setMenuOptions(Self, KeyCodes[2], a_option, a_index)
   ElseIf Type == "BodyEdit"
@@ -346,6 +347,9 @@ Event OnOptionInputAccept(int a_option, string a_input)
   If Type == "BodyEdit"
     SCX_BaseBodyEdit BodyEdit = SCXLib.getSCX_BaseAlias(SCXSet.JM_BaseBodyEdits, KeyCodes[1]) as SCX_BaseBodyEdit
     BodyEdit.setInputOptions(Self, KeyCodes[2], a_option, a_input)
+  ElseIf Type == "LibOther"
+    SCX_BaseLibrary Lib = JMap.getForm(SCXSet.JM_BaseLibraryList, KeyCodes[1]) as SCX_BaseLibrary
+    Lib.setInputOptions(Self, KeyCodes[2], a_option, a_input)
   EndIf
 EndEvent
 
@@ -353,7 +357,7 @@ Event OnOptionSelect(int a_option)
   String KeyList = JIntMap.getStr(JI_OptionIndexes, a_option)
   String[] KeyCodes = StringUtil.Split(KeyList, ".")
   String Type = KeyCodes[0]
-  If Type == "Stats" || Type == "Records"
+  If Type == "Stats" || Type == "Records" || Type == "LibOther"
     SCX_BaseLibrary Lib = JMap.getForm(SCXSet.JM_BaseLibraryList, KeyCodes[1]) as SCX_BaseLibrary
     Lib.setSelectOptions(Self, KeyCodes[2], a_option)
   ElseIf Type == "BodyEdit"
@@ -361,7 +365,7 @@ Event OnOptionSelect(int a_option)
     BodyEdit.setSelectOptions(Self, KeyCodes[2], a_option)
   ElseIf Type == "Perk"
     SCX_BasePerk PerkBase = SCXLib.getSCX_BaseAlias(SCXSet.JM_PerkIDs, KeyCodes[1]) as SCX_BasePerk
-    PerkBase.setSelectOptions(Self, KeyCodes[2], a_option)
+    PerkBase.setMCMSelectOptions(Self, KeyCodes[2], a_option)
   EndIf
 EndEvent
 
@@ -369,7 +373,7 @@ Event OnOptionHighlight(int a_option)
   String KeyList = JIntMap.getStr(JI_OptionIndexes, a_option)
   String[] KeyCodes = StringUtil.Split(KeyList, ".")
   String Type = KeyCodes[0]
-  If Type == "Stats" || Type == "Records"
+  If Type == "Stats" || Type == "Records" || Type == "LibOther"
     SCX_BaseLibrary Lib = JMap.getForm(SCXSet.JM_BaseLibraryList, KeyCodes[1]) as SCX_BaseLibrary
     Lib.setHighlight(Self, KeyCodes[2], a_option)
   ElseIf Type == "BodyEdit"
@@ -440,11 +444,13 @@ EndState
 State DebugEnable_TOG
 	Event OnSelectST()
 		SCXSet.DebugEnable = !SCXSet.DebugEnable
+    checkDebugSpells()
     ForcePageReset()
 	EndEvent
 
 	Event OnDefaultST()
     SCXSet.DebugEnable = False
+    checkDebugSpells()
     ForcePageReset()
 	EndEvent
 
@@ -494,6 +500,26 @@ Function reloadMaintenence()
         EndIf
       EndIf
       RefAliasKey = JMap.nextKey(RefAliasList, RefAliasKey)
+    EndWhile
+  EndIf
+EndFunction
+
+Function checkDebugSpells()
+  Formlist DSpells = SCXSet.SCX_DebugSpellList
+  Int Index = DSpells.GetSize()
+  If SCXSet.DebugEnable
+    While Index
+      Index -= 1
+      If !PlayerRef.HasSpell(DSpells.GetAt(Index) as Spell)
+        PlayerRef.AddSpell(DSpells.GetAt(Index) as Spell)
+      EndIf
+    EndWhile
+  Else
+    While Index
+      Index -= 1
+      If PlayerRef.HasSpell(DSpells.GetAt(Index) as Spell)
+        PlayerRef.removeSpell(DSpells.GetAt(Index) as Spell)
+      EndIf
     EndWhile
   EndIf
 EndFunction

@@ -41,6 +41,9 @@ Increase heavy tier
 Frenzy Item
   Basic Frenzy Item, and one that gives additional buff
 /;
+SCLibrary Property SCLib Auto
+SCLSettings Property SCLSet Auto
+
 SCX_BaseBodyEdit Property Belly Auto
 SCX_BaseEquipment Property SCL_Skyrim_BellyEquip01 Auto
 LeveledItem Property LItemApothecaryIngredientsCommon75 Auto
@@ -96,9 +99,9 @@ Armor Property SCL_EnchArmorDaedricCuirassHeavyBurden05 Auto
 LeveledItem Property SublistEnchArmorDaedricBoots04 Auto
 Armor Property SCL_EnchArmorDaedricBootsHeavyBurden04 Auto
 
-
-
-
+Potion Property SCL_DummyNotFoodLarge Auto
+Potion Property SCL_DummyNotFoodMedium Auto
+Potion Property SCL_DummyNotFoodSmall Auto
 
 Int ScriptVersion = 1
 Int Function checkVersion(Int aiStoredVersion)
