@@ -74,3 +74,16 @@ Spell[] Property SCL_OverfullSpellArray Auto
 ;Spell[] Property SCL_HeavySpeedArray Auto
 
 Spell[] Property SCL_StoredDamageArray Auto
+
+Int Property JM_SmallItemAnimList
+  Int Function Get()
+    Int ArchList = JDB.solveObj(".SCX_ExtraData.JM_SmallItemAnimList")
+    If !JValue.isExists(ArchList) || !JValue.isMap(ArchList)
+      ArchList = JMap.object()
+      JDB.solveObjSetter(".SCX_ExtraData.JM_SmallItemAnimList", ArchList, True)
+      Int Handle = ModEvent.Create("SCV_BuildSCLSmallAnimList")
+      ModEvent.Send(Handle)
+    EndIf
+    Return ArchList
+  EndFunction
+EndProperty

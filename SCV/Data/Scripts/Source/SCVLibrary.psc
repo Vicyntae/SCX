@@ -15,6 +15,16 @@ SCX_BasePerk Property StruggleSorcery
   EndFunction
 EndProperty
 
+SCX_BasePerk _Nourish
+SCX_BasePerk Property Nourish
+  SCX_BasePerk Function Get()
+    If !_Nourish
+      _Nourish = getSCX_BaseAlias(SCXSet.JM_PerkIDs, "SCV_Nourish") as SCX_BasePerk
+    EndIf
+    Return _Nourish
+  EndFunction
+EndProperty
+
 Int ScriptVersion = 0
 Int Function checkVersion(Int aiStoredVersion)
   If MCM.Pages.find("$SCVMCMSettingsPage") == -1
@@ -122,6 +132,63 @@ Int Function checkVersion(Int aiStoredVersion)
 
   Return ScriptVersion
 EndFunction
+
+Function reloadMaintenence()
+  RegisterForModEvent("SCLDigestFinishEvent", "OnSCLDigestFinish")
+  RegisterForModEvent("SCLDigestItemFinishEvent", "OnSCLDigestItem")
+EndFunction
+
+Event OnSCLDigestItem(Form akEater, Form akFood, Float afWeightValue)
+  If akEater as Actor && akFood as Actor
+    Int PerkLevel = getPerkLevel(akEater as Actor, "SCV_FriendlyFood")
+    Bool Companion = (akFood as Actor).IsInFaction(SCXSet.CurrentFollowerFaction) || (akFood as Actor).IsInFaction(SCXSet.PotentialFollowerFaction)
+    Bool isFriendly = (akFood as Actor).GetRelationshipRank(akEater as Actor) >= 2
+    If Companion && PerkLevel >= 3
+      (akFood as Actor).Kill()
+    ElseIf isFriendly && PerkLevel >= 4
+      (akFood as Actor).Kill()
+    ElseIf PerkLevel >= 5
+      (akFood as Actor).Kill()
+    Else
+      (akFood as Actor).Kill(akEater as Actor)
+    EndIf
+    checkPredSpells(akEater as Actor)
+    transferSCXItems(akEater as Actor, akFood as Actor, "Stomach")
+    transferInventory(akEater as Actor, akFood as Actor, "Stomach")
+
+    ;/If SCVSet.SizeMatters_Initialized && SCVSet.SizeMattersActive
+      Int NourishPerk = SCVLib.getCurrentPerkLevel(akEater as Actor, "SCV_Nourish")
+      If NourishPerk
+        Notice("Size Matters Active. " + SCVLib.nameGet(akEater) + " has nourish perk.")
+        Int Nourish = SCVLib.getTotalPerkLevel(akEater as Actor, "SCV_Nourish")
+        Float NModify = 1 + ((Nourish - 1) / 10)
+        Float DigestValue = afDigestValue
+        DigestValue /= 5000
+        DigestValue *= NModify
+        Notice("Added value = " + afDigestValue)
+
+        Quest FunctionQuest = Game.GetFormFromFile(0x0201665B, "GTS.esp") as Quest
+        If FunctionQuest
+          If akEater == PlayerRef
+            gtsPlayerFunctions PF = FunctionQuest as gtsPlayerFunctions
+            PlayerRef.ModActorValue("FavorActive", DigestValue)
+            Float CurrentSize = PF.GetCurrentSize()
+            Float NewSize = PF.GetMaxSize(PF.GetRawRequirementFromSize(CurrentSize) + DigestValue)
+            PF.ScaleActor(NewSize, CurrentSize)
+          Else
+            gtsNPCFunctions NF = Game.GetFormFromFile(0x0201665B, "GTS.esp") as gtsNPCFunctions
+            (akEater as Actor).ModActorValue("FavorActive", DigestValue)
+            Float CurrentSize = NF.GetCurrentSize(akEater as Actor)
+            Float NewSize = NF.GetMaxSize(akEater as Actor, NF.GetRawRequirementFromSize(CurrentSize) + DigestValue)
+            NF.ScaleActor(akEater as Actor, NewSize, CurrentSize)
+          EndIf
+        Else
+          Issue("Function Quest Not Found!", 1)
+        EndIf
+      EndIf
+    EndIf/;
+  endIf
+EndEvent
 
 ;*******************************************************************************
 ;Library Functions
@@ -1358,10 +1425,13 @@ Function checkPredSpells(Actor akTarget, Int aiTargetData = 0)
     If !akTarget.HasSpell(SCVSet.SCV_HasOVBreakdownPrey)
       akTarget.AddSpell(SCVSet.SCV_HasOVBreakdownPrey, True)
     EndIf
+    Int NourishLevel = Math.Ceiling(JMap.getFlt(aiTargetData, "SCVNourishLevel"))
+    (SCVSet.NourishSpells.GetAt(NourishLevel) as Spell).cast(akTarget)
   Else
     If akTarget.HasSpell(SCVSet.SCV_HasOVBreakdownPrey)
       akTarget.RemoveSpell(SCVSet.SCV_HasOVBreakdownPrey)
     EndIf
+    (SCVSet.NourishSpells.GetAt(0) as Spell).cast(akTarget)
   EndIf
 
   If hasPreyType(akTarget, "Colon", "Breakdown", aiTargetData)
@@ -1393,7 +1463,7 @@ Function checkPredSpells(Actor akTarget, Int aiTargetData = 0)
       akTarget.RemoveSpell(SCVSet.SCV_HasCVBreakdownPrey)
     EndIf
   EndIf
-  If isInPred(akTarget)
+  If isInPred(akTarget) && (!akTarget.IsDead() || !akTarget.IsUnconscious())
     If !akTarget.HasSpell(SCVSet.FollowSpell)
       akTarget.AddSpell(SCVSet.FollowSpell)
     EndIf
@@ -1402,7 +1472,7 @@ Function checkPredSpells(Actor akTarget, Int aiTargetData = 0)
       akTarget.RemoveSpell(SCVSet.FollowSpell)
     EndIf
   EndIf
-  If isInPred(akTarget) || hasStrugglePrey(akTarget)
+  If (isInPred(akTarget) || hasStrugglePrey(akTarget)) && (!akTarget.IsDead() || !akTarget.IsUnconscious())
     If !akTarget.HasSpell(SCVSet.IsStrugglingSpell)
       akTarget.AddSpell(SCVSet.IsStrugglingSpell, True)
     EndIf
@@ -2419,7 +2489,6 @@ Function giveAllPreyResExp(Actor akPred, Int aiEXP, Int aiTargetData = 0)
     i = JFormMap.nextKey(JF_Struggle, i) as Actor
   EndWhile
 EndFunction
-
 ;Transfer functions ============================================================
 
 Function transferInventory(Actor akTarget, Actor akSource, String asArchetype)
@@ -2553,7 +2622,7 @@ Function handleFinishedActor(Actor akTarget)
     Float WeightValue = SCXLib.genWeightValue(akTarget, True)
     SCX_BaseItemArchetypes Arch = getSCX_BaseAlias(SCXSet.JM_BaseArchetypes, StoredStrings[0]) as SCX_BaseItemArchetypes
     If Arch
-      Arch.addToContents(nextPred, akTarget, None, StoredStrings[1])
+      Arch.addToContents(nextPred, akTarget, None, StoredStrings[1], abMoveNow = !(akTarget == PlayerRef))
       Arch.updateArchetype(nextPred)
     ElseIf StoredStrings[1] == "Stored"
       Struggling.addToContents(nextPred, akTarget, None, "Stored")

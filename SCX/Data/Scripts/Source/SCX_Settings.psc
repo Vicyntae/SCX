@@ -4,6 +4,7 @@ Event OnInit()
   JMap.setForm(SCXSet.JM_QuestList, "SCX_Settings", Self)
 EndEvent
 
+SCX_GameLibrary Property GameLibrary Auto
 ;ID = "SCX_Settings"
 ;Tracking Settings *************************************************************
 GlobalVariable Property SCX_SET_EnableFollowerTracking Auto;Default 0
@@ -189,6 +190,7 @@ FormList Property SCX_ItemKeywordSearch Auto
 Quest Property SCX_MonitorManagerQuest Auto
 Quest Property SCX_MonitorFinderQuest Auto
 Quest Property SCX_MonitorCycleQuest Auto
+Package Property SCX_ActorHoldPackage Auto
 SCX_ModConfigMenu Property SCX_ModConfigMenuQuest Auto
 Form[] Property TeammatesList
   Form[] Function Get()

@@ -12,9 +12,9 @@ EndProperty
 Bool Property EnableDebugMessages Auto
 
 Event OnInit()
+  Utility.WaitMenuMode(Utility.RandomFloat(0.1, 5))
   _setup()
   Setup()
-  Utility.WaitMenuMode(0.5)
   If !SCXSet
     SCXSet = JMap.getForm(SCX_Library.getJM_QuestList(), "SCX_Settings") as SCX_Settings
   EndIf
@@ -542,6 +542,10 @@ ObjectReference Function findRefFromBase(Int JF_Contents, Form akBaseObject)
     i = JFormMap.nextKey(JF_Contents, i)
   EndWhile
   Return None
+EndFunction
+
+String Function getRaceString(Actor akTarget)
+  Return SCXSet.GameLibrary.getRaceString(akTarget)
 EndFunction
 ;+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ;Debug Functions

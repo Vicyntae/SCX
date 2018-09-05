@@ -32,6 +32,7 @@ Event OnPreyListRecieved(Form akPred, Int JF_PreyList, Bool allAtOnce, Int JA_Ta
   Int i
   While i < NumPrey
     Actor Prey = JFormMap.getNthKey(JF_PreyList, i) as Actor
+    Note("Retrieving animation for " + nameGet(akPred) + " and " + nameGet(Prey))
     AnimArray[i] = getRandomAnim(Pred, Prey, JFormMap.getObj(JF_PreyList, Prey), JA_TagList)
     i += 1
   EndWhile
@@ -55,6 +56,7 @@ EndEvent
 
 Alias Function getRandomAnim(Actor akPred, Actor akPrey, Int JM_PreyInfo, Int JA_TagList)
   String AnimType = JMap.getStr(JM_PreyInfo, "VoreType")
+  Note("VoreType = " + AnimType)
   Bool Success = JMap.getInt(JM_PreyInfo, "Success") as Bool
   If !Success
     Int JA_MasterAnimList = JDB.solveObj(".SCX_ExtraData.SCVAnimations.VoreFail")
@@ -63,14 +65,16 @@ Alias Function getRandomAnim(Actor akPred, Actor akPrey, Int JM_PreyInfo, Int JA
     Return getSCX_BaseAlias(SCVSet.JM_VoreAnimationList, AnimID) as Alias
   EndIf
 
-  String PredRace = getRaceString(akPred)
+  String PredRace = SCVLib.getRaceString(akPred)
   Int JA_MasterAnimList = JDB.solveObj(".SCX_ExtraData.SCVAnimations." + AnimType)
   Int JA_AnimArray = JArray.object()
   JArray.addFromArray(JA_AnimArray, JA_MasterAnimList)
   Bool Found
   While !Found && JArray.count(JA_AnimArray) > 0
+    Note("Number of animations available =" + JArray.count(JA_AnimArray))
     Int Index = Utility.RandomInt(0, JArray.count(JA_AnimArray) - 1)
     String AnimID = JArray.getStr(JA_AnimArray, Index)
+    Note("Checking animation " + AnimID)
     SCV_BaseAnimation Anim = getSCX_BaseAlias(SCVSet.JM_VoreAnimationList, AnimID) as SCV_BaseAnimation
 
     Actor[] Actors = New Actor[2]

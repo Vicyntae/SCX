@@ -72,6 +72,12 @@ Function removeAllActorItems(Actor akTarget, Bool ReturnItems = False);Rewrite o
     Form ItemKey = JFormMap.nextKey(JF_Contents)
     While ItemKey
       If ItemKey as Actor
+        Int JM_Entry = JFormMap.getObj(JF_Contents, ItemKey)
+        String[] ArchPair = StringUtil.Split(JMap.getStr(JM_Entry, "StoredItemType"), ".")
+        Int JF_OtherContents = getContents(akTarget, ArchPair[0], "Struggle", TargetData)
+        If JF_OtherContents
+          JFormMap.removeKey(JF_OtherContents, ItemKey)
+        EndIf
         SCXLib.extractActor(akTarget, ItemKey as Actor, sKey, ItemTypes[i], TargetPoint)
       EndIf
       ItemKey = JFormMap.nextKey(JF_Contents, ItemKey)
@@ -142,7 +148,7 @@ Int Function addToContents(Actor akTarget, ObjectReference akReference = None, F
   SCX_BaseItemArchetypes Arch = getSCX_BaseAlias(SCXSet.JM_BaseArchetypes, StoredInfo[0]) as SCX_BaseItemArchetypes
   If Arch
     If Prey.IsDead() || Prey.IsUnconscious()
-      Arch.addToContents(Pred, Prey, None, StoredInfo[1])
+      Return Arch.addToContents(Pred, Prey, None, StoredInfo[1])
     Else
       Arch.addToContents(Pred, Prey, None, "Struggle", afWeightValueOverride = afWeightValueOverride, abMoveNow = False)
     EndIf

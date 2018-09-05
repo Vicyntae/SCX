@@ -9,6 +9,12 @@ Function editBodyPart(Actor akTarget, Float afValue, String asMethodOverride = "
     EndIf
   EndIf
   Int TargetData = SCXLib.getTargetData(akTarget)
+  afValue *= Multiplier
+  afValue *= (akTarget.GetLeveledActorBase().GetWeight() / 100 * HighScale) + 1
+  afValue /= akTarget.GetScale() * NetImmerse.GetNodeScale(akTarget, "NPC Root [Root]", False)
+  afValue = curveValue(afValue)
+  afValue = PapyrusUtil.ClampFloat(afValue, Minimum, Maximum)
+
   JMap.setFlt(TargetData, "SCX_BodyEditBellyTargetValue", afValue)
   If asMethodOverride
     JMap.setStr(TargetData, MethodKey, asMethodOverride)

@@ -14,6 +14,8 @@ If fullness < desire Threshold, will eat
 3 = Full meal
 4 = uncontrollable eat
 /;
+
+
 Function runUpdate(SCX_Monitor akAlias, Actor akTarget, Int aiTargetData, Float afTimePassed, Float afCurrentUpdateTime, Bool abDailyUpdate)
   If SCLSet.AutoEatActive
     If MyActor != PlayerRef

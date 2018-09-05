@@ -1,8 +1,5 @@
-ScriptName SCV_Skyrim_Database Extends SCX_BaseQuest
+ScriptName SCV_Skyrim_Database Extends SCV_GameLibrary
 
-SCVSettings Property SCVSet Auto
-SCVLibrary Property SCVLib Auto
-SCX_ModConfigMenu Property MCM Auto
 Race Property ArgonianRace Auto
 Race Property ArgonianRaceVampire Auto
 Race Property BretonRaceVampire Auto
@@ -60,6 +57,31 @@ Race Property WolfRace Auto
 Race Property AlduinRace Auto
 Race Property DragonRace Auto
 Race Property UndeadDragonRace Auto
+
+MiscObject Property SCV_DragonGem Auto
+MiscObject Property SCV_SplendidSoulGem Auto
+Soulgem Property SoulGemBlack Auto
+Soulgem Property SoulGemBlackFilled Auto
+Soulgem Property SoulGemGrand Auto
+Soulgem Property SoulGemGrandFilled Auto
+Soulgem Property SoulGemGreater Auto
+Soulgem Property SoulGemGreaterFilled Auto
+Soulgem Property SoulGemCommon Auto
+Soulgem Property SoulGemCommonFilled Auto
+Soulgem Property SoulGemLesser Auto
+Soulgem Property SoulGemLesserFilled Auto
+Soulgem Property SoulGemPetty Auto
+Soulgem Property SoulGemPettyFilled Auto
+MiscObject Property SoulGemPiece001 Auto
+MiscObject Property SoulGemPiece002 Auto
+MiscObject Property SoulGemPiece003 Auto
+MiscObject Property SoulGemPiece004 Auto
+MiscObject Property SoulGemPiece005 Auto
+
+Function Setup()
+  SCVSet.GameLibrary = Self
+EndFunction
+
 Int ScriptVersion = 1
 Int Function checkVersion(Int aiStoredVersion)
   {Return the new version and the script will update the stored version}

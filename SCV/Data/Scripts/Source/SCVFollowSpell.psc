@@ -7,6 +7,7 @@ SCX_Library Property SCXLib Auto
 SCVLibrary Property SCVLib Auto
 SCVSettings Property SCVSet Auto
 SCX_Settings Property SCXSet Auto
+Package Property SCX_ActorHoldPackage Auto
 String Property DebugName
   String Function Get()
     If Prey
@@ -39,6 +40,7 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
   akTarget.ClearExtraArrows()
   akTarget.StopCombatAlarm()
   akTarget.StopCombat()
+  ActorUtil.AddPackageOverride(akTarget, SCXSet.SCX_ActorHoldPackage)
   Pred.SetAlert(False)
   Pred.EvaluatePackage()
   SCVLib.checkPredSpells(akTarget)
@@ -77,6 +79,7 @@ Event OnEffectFinish(Actor akTarget, Actor akCaster)
       Pred.EnableAI(True)
     EndIf
   EndIf
+  ActorUtil.RemovePackageOverride(akTarget, SCX_ActorHoldPackage)
   akTarget.SetGhost(False)
   akTarget.EnableAI(True)
   akTarget.EvaluatePackage()

@@ -439,6 +439,8 @@ Function displayTransferItemReject(Actor akTarget, ObjectReference akItem, Form 
   EndIf
 EndFunction
 
+Int JF_addTransferItemQueue
+Int addTransferItemNum
 Function addTransferItem(Actor akTarget, ObjectReference akItemReference = None, Form akBaseItem = None, Int aiItemCount = 1)
   Form BaseItem
   If akItemReference
@@ -450,11 +452,65 @@ Function addTransferItem(Actor akTarget, ObjectReference akItemReference = None,
   Else
     BaseItem = akBaseItem
   EndIf
-  If (BaseItem as Potion || BaseItem as Ingredient) && !SCLib.isNotFood(BaseItem)
-    addToContents(akTarget, akItemReference, akBaseItem, "Breakdown", aiItemCount)
+
+  Bool FirstItem
+  If !JF_addTransferItemQueue
+    JF_addTransferItemQueue = JValue.retain(JFormMap.object())
+    FirstItem = True
   Else
-    addToContents(akTarget, akItemReference, akBaseItem, "Stored", aiItemCount)
+    addTransferItemNum += 1
   EndIf
+  If akItemReference
+    If JFormMap.hasKey(JF_addTransferItemQueue, akItemReference)
+      JFormMap.setInt(JF_addTransferItemQueue, akItemReference, JFormMap.getInt(JF_addTransferItemQueue, akItemReference) + 1)
+    Else
+      JFormMap.setInt(JF_addTransferItemQueue, akItemReference, 1)
+    EndIf
+  Else
+    If JFormMap.hasKey(JF_addTransferItemQueue, akBaseItem)
+      JFormMap.setInt(JF_addTransferItemQueue, akBaseItem, JFormMap.getInt(JF_addTransferItemQueue, akBaseItem) + 1)
+    Else
+      JFormMap.setInt(JF_addTransferItemQueue, akBaseItem, 1)
+    EndIf
+  EndIf
+
+  Utility.Wait(0.5)
+  If FirstItem
+    While addTransferItemNum > 0
+      Utility.Wait(1)
+    EndWhile
+  Else
+    addTransferItemNum -= 1
+    Return
+  EndIf
+  Actor[] Actors = New Actor[1]
+  Actors[0] =akTarget
+  Int[] Datas = New Int[1]
+  Datas[1] = SCLib.getTargetData(akTarget)
+  Int SmallAnimList = SCLSet.JM_SmallItemAnimList
+  String AnimName = JMap.getNthKey(SmallAnimList, Utility.RandomInt(0, JValue.count(SmallAnimList) - 1))
+  SCX_BaseAnimation Anim = getSCX_BaseAlias(SmallAnimList, AnimName) as SCX_BaseAnimation
+  If Anim
+    Anim.prepAnimation(Actors, Datas)
+    Anim.runAnimation(Actors, Datas)
+  EndIf
+  Form ItemKey = JFormMap.nextKey(JF_addTransferItemQueue)
+  While ItemKey
+    Form Base
+    If akItemReference as Actor
+      Base = (akItemReference as Actor).GetLeveledActorBase()
+    ElseIf ItemKey as ObjectReference
+      Base = (ItemKey as ObjectReference).GetBaseObject()
+    Else
+      Base = ItemKey
+    EndIf
+    If (Base as Potion || Base as Ingredient) && !SCLib.isNotFood(Base)
+      addToContents(akTarget, akItemReference, akBaseItem, "Breakdown", aiItemCount)
+    Else
+      addToContents(akTarget, akItemReference, akBaseItem, "Stored", aiItemCount)
+    EndIf
+    ItemKey = JFormMap.nextKey(JF_addTransferItemQueue, ItemKey)
+  EndWhile
 EndFunction
 
 Event OnDigestCall(Form akForm, Float afTimePassed)
@@ -487,6 +543,9 @@ Function breakdownItems(Actor akTarget, Float afTimePassed, Int aiTargetData = 0
     ;Note("# Items = " + NumOfItems + ", Remove Amount/Item = " + IndvRemoveAmount)
     Float Fullness
     Float TotalDigested
+    Float LiquidDigest
+    Float EnergyDigest
+    Float SolidDigest
     Form ItemKey = JFormMap.nextKey(ItemList)
     While ItemKey
       If ItemKey as ObjectReference
@@ -530,6 +589,13 @@ Function breakdownItems(Actor akTarget, Float afTimePassed, Int aiTargetData = 0
             EndIf
           EndWhile
           DigestedAmount -= RemoveAmount  ;If there's anything left of the remove amount, subtract it from the digested amount
+          Float LiquidRatio = JMap.getFlt(JM_DataEntry, "LiquidRatio")
+          LiquidDigest += DigestedAmount * LiquidRatio
+          SolidDigest += DigestedAmount * (1 - LiquidRatio)
+          Float EnergyRatio = JMap.getFlt(JM_DataEntry, "EnergyRatio")
+          If EnergyRatio
+            EnergyDigest += DigestedAmount * EnergyRatio
+          EndIf
           TotalDigested += DigestedAmount
         Else
           ;Note("Regular reference found!")
@@ -556,6 +622,14 @@ Function breakdownItems(Actor akTarget, Float afTimePassed, Int aiTargetData = 0
             sendDigestItemFinishEvent(akTarget, ItemKey, JMap.getFlt(JM_ItemEntry, "IndvWeightValue"))
             JMap.setInt(TargetData, "SCLNumItemsDigested", JMap.getInt(TargetData, "SCLNumItemsDigested") + 1)
           EndIf
+          Float LiquidRatio = JMap.getFlt(JM_DataEntry, "LiquidRatio")
+          LiquidDigest += DigestedAmount * LiquidRatio
+          SolidDigest += DigestedAmount * (1 - LiquidRatio)
+          Float EnergyRatio = JMap.getFlt(JM_DataEntry, "EnergyRatio")
+          If EnergyRatio
+            EnergyDigest += DigestedAmount * EnergyRatio
+          EndIf
+
           TotalDigested += DigestedAmount
         EndIf
       Else
@@ -568,22 +642,25 @@ Function breakdownItems(Actor akTarget, Float afTimePassed, Int aiTargetData = 0
     ;Maybe just run updateFullnessEX after digestion.
     JMap.setFlt(TargetData, "SCLTotalDigestedFood", JMap.getFlt(TargetData, "SCLTotalDigestedFood") + TotalDigested)
     JMap.setFlt(TargetData, "SCLLastDigestAmount", TotalDigested)
+    JMap.setFlt(TargetData, "SCLLastLiquidAmount", LiquidDigest)
+    JMap.setFlt(TargetData, "SCLLastSolidAmount", SolidDigest)
+
     JF_eraseKeys(ItemList, JA_Remove)
     JA_Remove = JValue.release(JA_Remove)
-    sendDigestFinishEvent(akTarget, TotalDigested)
+    sendDigestFinishEvent(akTarget, TotalDigested, SolidDigest, LiquidDigest, EnergyDigest)
   Else
     JMap.setFlt(TargetData, "SCLLastDigestAmount", 0)
-    sendDigestFinishEvent(akTarget, 0)
+    sendDigestFinishEvent(akTarget, 0, 0, 0, 0)
   EndIf
   JMap.setInt(TargetData, "SCLNowDigesting", 0)
   updateArchetype(akTarget, TargetData)
 EndFunction
 
 Function sendDigestItemFinishEvent(Actor akEater, Form akFood, Float afWeightValue)
-  If akFood as Actor
+  ;/If akFood as Actor
     (akFood as Actor).Kill(akEater)
     SCX_Library.eraseActorData(akFood as Actor)
-  EndIf
+  EndIf/;
   Int FinishEvent = ModEvent.Create("SCLDigestItemFinishEvent")
   ModEvent.PushForm(FinishEvent, akEater)
   ModEvent.PushForm(FinishEvent, akFood)
@@ -591,10 +668,13 @@ Function sendDigestItemFinishEvent(Actor akEater, Form akFood, Float afWeightVal
   ModEvent.Send(FinishEvent)
 EndFunction
 
-Function sendDigestFinishEvent(Actor akEater, Float afDigestedAmount)
+Function sendDigestFinishEvent(Actor akEater, Float afDigestedAmount, Float afSolidDigest, Float afLiquidDigest, Float afEnergyDigest)
   Int FinishEvent = ModEvent.Create("SCLDigestFinishEvent")
   ModEvent.PushForm(FinishEvent, akEater)
   ModEvent.PushFloat(FinishEvent, afDigestedAmount)
+  ModEvent.PushFloat(FinishEvent, afSolidDigest)
+  ModEvent.PushFloat(FinishEvent, afLiquidDigest)
+  ModEvent.PushFloat(FinishEvent, afEnergyDigest)
   ModEvent.Send(FinishEvent)
 EndFunction
 

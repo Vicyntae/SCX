@@ -3,7 +3,7 @@ SCVLibrary Property SCVLib Auto
 SCVSettings Property SCVSet Auto
 Perk Property SoulSqueezer Auto
 SCX_BasePerk Property SCV_SpiritSwallower Auto
-SCX_BaseItemArchetypes Property Stomach Auto
+SCX_BaseItemArchetypes Stomach
 Quest Property MGRArniel04 Auto
 Quest Property MGRitual03 Auto
 MiscObject Property SCV_DragonGem Auto
@@ -25,6 +25,9 @@ MiscObject Property SoulGemPiece002 Auto
 MiscObject Property SoulGemPiece003 Auto
 MiscObject Property SoulGemPiece004 Auto
 MiscObject Property SoulGemPiece005 Auto
+Keyword Property ActorTypeDwarven Auto
+Keyword Property ActorTypeDragon Auto
+Keyword Property ActorTypeNPC Auto
 Function Setup()
   ;/Name = "Pit of Souls"
   Description = New String[4]
@@ -38,6 +41,7 @@ Function Setup()
   Requirements[1] = "Have at least 30 Enchanting, have at least Spirit Swallower Lv. 1, be at level 15, and have the perk 'Soul Squeezer'."
   Requirements[2] = "Have at least 55 Enchanting, have at least Spirit Swallower Lv. 2, be at level 30, capture at least 30 souls by devouring them, and assist a wizard in his studies into the Dwemer disappearance."
   Requirements[3] = "Have at least 90 Enchanting, be at level 50, capture at least 70 souls by devouring them, and become a master Conjurer."/;
+  RegisterForModEvent("SCLDigestItemFinishEvent", "OnSCLDigestItem")
 EndFunction
 
 Bool Function canTake(Actor akTarget, Int aiPerkLevel, Bool abOverride, Int aiTargetData = 0)
@@ -68,17 +72,25 @@ Bool Function isKnown(Actor akTarget)
   EndIf
 EndFunction
 
+Event OnSCLDigestItem(Form akEater, Form akFood, Float afWeightValue)
+  If akEater as Actor && akFood as Actor
+    If hasGems(akEater as Actor)
+      fillGem(akEater as Actor, akFood as Actor)
+    EndIf
+  EndIf
+EndEvent
+
 Int Function genSoulSize(Actor akTarget)
   Race TargetRace = akTarget.GetRace()
-  If TargetRace.HasKeyword(SCVSet.ActorTypeDwarven)
+  If TargetRace.HasKeyword(ActorTypeDwarven)
     Return 0
   EndIf
   Int Level = akTarget.GetLevel()
-  If TargetRace.HasKeyword(SCVSet.ActorTypeDragon)
+  If TargetRace.HasKeyword(ActorTypeDragon)
     Return 8
   ElseIf SCVLib.isBossActor(akTarget)
     Return 7
-  ElseIf TargetRace.HasKeyword(SCVSet.ActorTypeNPC)
+  ElseIf TargetRace.HasKeyword(ActorTypeNPC)
     Return 6
   ElseIf Level >= 38
     Return 5
@@ -120,12 +132,12 @@ Int Function fillGem(Actor akPred, Actor akPrey, Int aiTargetData = 0)
   While i < Num && !Done
     If Gems[i] > 0  ;If there is a gem with size equal to or greater than the soul size
       Notice("Found fillable gem! Soul Size = " + SoulSize + ", Gem size = " + i)
-      Float GemChance = JMap.getFlt(TargetData, "SCVGemBonusChance")
+      Float GemChance = JMap.getFlt(TargetData, "SCVGemBonusChance") / 100
       Int AddGem = 1
       If GemChance > 0
         Bool Failed
         While !Failed && AddGem < 11  ;Max 10 addition gems
-          Float Success = Utility.RandomInt()
+          Float Success = Utility.randomfloat()
           If Success < GemChance
             AddGem += 1
           Else
@@ -264,6 +276,9 @@ Function replaceGem(Actor akTarget, Int aiOriginal, Int aiNew, Int aiNum = 1, In
   Int TargetData = getData(akTarget, aiTargetData)
   Form[] OriginalArray = getGemTypes(aiOriginal)
   Form[] NewArray = getGemTypes(aiNew)
+  If !Stomach
+    Stomach = getSCX_BaseAlias(SCXSet.JM_BaseArchetypes, "Stomach") as SCX_BaseItemArchetypes
+  EndIf
   If aiOriginal == 0
     Form Fragment = findGemFragment(akTarget, "Stomach", "Stored", TargetData)
     If Fragment

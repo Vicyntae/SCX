@@ -29,7 +29,7 @@ Bool Function canTake(Actor akTarget, Int aiPerkLevel, Bool abOverride, Int aiTa
 EndFunction
 
 Bool Function takePerk(Actor akTarget, Bool abOverride = False, Int aiTargetData = 0)
-  If JValue.isExists(aiTargetData)
+  If !JValue.isExists(aiTargetData)
     aiTargetData = SCXLib.getTargetData(akTarget)
   EndIf
   Int i = getPerkLevel(akTarget) + 1

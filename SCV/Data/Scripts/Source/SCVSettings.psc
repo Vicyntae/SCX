@@ -1,5 +1,6 @@
 ScriptName SCVSettings Extends SCX_BaseQuest
 
+SCV_GameLibrary Property GameLibrary Auto
 GlobalVariable Property SCV_SET_OVPredPercent Auto
 Int Property OVPredPercent
   Int Function Get()
