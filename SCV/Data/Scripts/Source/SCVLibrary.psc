@@ -1564,11 +1564,6 @@ Function applyStruggleSpells(Actor akTarget, Int aiTargetData = 0)
   EndIf
   ;Note(akTarget.GetLeveledActorBase().GetName() + "Stamina = " + StaminaTier + ", Magicka = " + MagickaTier + ", Health = " + HealthTier)
 
-  If akTarget.Is3DLoaded()
-    Note("Actor is 3d loaded!")
-  Else
-    Note("Actor is NOT 3d loaded!")
-  EndIf
   (SCVSet.StruggleStaminaSpells.GetAt(StaminaTier) as Spell).Cast(akTarget)
   (SCVSet.StruggleMagickaSpells.GetAt(MagickaTier) as Spell).Cast(akTarget)
   (SCVSet.StruggleHealthSpells.GetAt(HealthTier) as Spell).Cast(akTarget)
@@ -2618,14 +2613,15 @@ Function handleFinishedActor(Actor akTarget)
     ElseIf StoredStrings[0] == "Scrotum"
       nextPred.Say(SCVSet.SCV_CVFinishSound)
     EndIf
-
+    Note("Arch String = " + StoredType)
     Float WeightValue = SCXLib.genWeightValue(akTarget, True)
     SCX_BaseItemArchetypes Arch = getSCX_BaseAlias(SCXSet.JM_BaseArchetypes, StoredStrings[0]) as SCX_BaseItemArchetypes
     If Arch
       Arch.addToContents(nextPred, akTarget, None, StoredStrings[1], abMoveNow = !(akTarget == PlayerRef))
       Arch.updateArchetype(nextPred)
     ElseIf StoredStrings[1] == "Stored"
-      Struggling.addToContents(nextPred, akTarget, None, "Stored")
+      Note("Adding to struggling stored contents.")
+      Struggling.addToContents(nextPred, akTarget, None, "Stored", StoredType)
       Struggling.updateArchetype(nextPred)
     Else
       akTarget.Kill(nextPred)

@@ -40,7 +40,10 @@ EndFunction
 Function editBodyPart(Actor akTarget, Float afValue, String asMethodOverride = "", Int aiEquipSetOverride = 0, String asShortModKey = "SCX.esp", String asFullModKey = "Skyrim Character Extended")
 EndFunction
 
-Function updateBodyPart(Actor akTarget)
+Function rapidEdit(Actor akTarget, Float afValue, String asMethodOverride = "", Int aiEquipSetOverride = 0, String asShortModKey = "SCX.esp", String asFullModKey = "Skyrim Character Extended")
+EndFunction
+
+Function updateBodyPart(Actor akTarget, Bool abRapid = False)
   Int TargetData = SCXLib.getTargetData(akTarget)
   Int i = CollectKeys.length
   Float Total = 1
@@ -48,7 +51,11 @@ Function updateBodyPart(Actor akTarget)
     i -= 1
     Total += JMap.getFlt(TargetData, CollectKeys[i])
   EndWhile
-  editBodyPart(akTarget, Total)
+  If !abRapid
+    editBodyPart(akTarget, Total)
+  Else
+    rapidEdit(akTarget, Total)
+  EndIf
 EndFunction
 
 Int Function findEquipTier(Int aiSet, Float fValue)
@@ -247,7 +254,7 @@ Function setHighlight(SCX_ModConfigMenu MCM, String asValue, Int aiOption)
   ElseIf asValue == "EnableIncrement"
     HighLight = "Enables or disables gradual growth."
   ElseIf asValue == "Methods"
-    HighLight = "Sets how the change is implement."
+    HighLight = "Sets how the change is implemented."
   EndIf
   MCM.setInfoText(HighLight)
 EndFunction

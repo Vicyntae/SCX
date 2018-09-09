@@ -8,11 +8,15 @@ SCX_Library Property SCXLib Auto
 SCX_Settings Property SCXSet Auto
 String Property DebugName
   String Function Get()
-    Return "[SCX_BellyTracker " + MyActor.GetLeveledActorBase().GetName() + "] "
+    If MyActor
+      Return "[SCX_BellyTracker " + MyActor.GetLeveledActorBase().GetName() + "] "
+    Else
+      Return "[SCX_BellyTracker] "
+    EndIf
   EndFunction
 EndProperty
 Bool EnableDebugMessages = False
-
+Bool RapidChange
 String ShortModKey = "SCX.esp"
 String FullModKey = "Skyrim Character Extended"
 
@@ -26,13 +30,18 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
   RegisterForModEvent("SCX_BodyEditBellySpellMethodUpdate", "OnMethodUpdate")
 EndEvent
 
-Event OnMethodUpdate()
-  Gender = MyActor.GetLeveledActorBase().GetSex() as Bool
-  String Method = JMap.getStr(ActorData, Belly.MethodKey, Belly.CurrentMethod)
-  If Method != GetState()
-    GoToState(Method)
+Event OnMethodUpdate(Form akTarget, Bool abRapid)
+  If akTarget as Actor && akTarget == MyActor
+    Gender = MyActor.GetLeveledActorBase().GetSex() as Bool
+    String Method = JMap.getStr(ActorData, Belly.MethodKey, Belly.CurrentMethod)
+    If Method != GetState()
+      GoToState(Method)
+    EndIf
+    If abRapid
+      RapidChange = True
+    EndIf
+    RegisterForSingleUpdate(0.1)
   EndIf
-  RegisterForSingleUpdate(0.1)
 EndEvent
 
 State Disabled
@@ -54,7 +63,11 @@ State NiOverride
     CurrentSize = NiOverride.GetNodeTransformScale(MyActor, False, Gender, "NPC Belly", ShortModKey)
     Float TargetValue = JMap.getFlt(ActorData, "SCX_BodyEditBellyTargetValue", 1)
     Float Inc = Belly.Increment
+    If RapidChange
+      Inc *= 5
+    EndIf
     If TargetValue == CurrentSize
+      RapidChange = False
       Return
     ElseIf Math.abs(TargetValue - CurrentSize) < Inc
       CurrentSize == TargetValue
@@ -65,7 +78,11 @@ State NiOverride
     EndIf
     NiOverride.AddNodeTransformScale(MyActor, False, Gender, "NPC Belly", ShortModKey, CurrentSize)
     NiOverride.UpdateNodeTransform(MyActor, False, Gender, "NPC Belly")
-    RegisterForSingleUpdate(Inc/Belly.IncrementRate)
+    Float Rate = Belly.IncrementRate
+    If RapidChange
+      Rate *= 5
+    EndIf
+    RegisterForSingleUpdate(Inc/Rate)
   EndEvent
 EndState
 
@@ -165,7 +182,11 @@ State Equipment
 
     Float TargetValue = JMap.getFlt(ActorData, "SCX_BodyEditBellyTargetValue")
     Float Inc = Belly.Increment
+    If RapidChange
+      Inc *= 5
+    EndIf
     If TargetValue == CurrentSize
+      RapidChange = False
       Return
     ElseIf Math.abs(TargetValue - CurrentSize) < Inc
       CurrentSize == TargetValue
@@ -231,7 +252,11 @@ State Equipment
     If CurrentEquip[1] as SCX_BaseEquipment
       (CurrentEquip[1] as SCX_BaseEquipment).ApplyMorphs(MyActor, CurrentSize)
     EndIf
-    RegisterForSingleUpdate(0.1)
+    Float Rate = Belly.IncrementRate
+    If RapidChange
+      Rate *= 5
+    EndIf
+    RegisterForSingleUpdate(Inc/Rate)
   EndEvent
 EndState
 

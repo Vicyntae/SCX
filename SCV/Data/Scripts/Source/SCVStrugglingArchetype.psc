@@ -66,6 +66,7 @@ Function removeAllActorItems(Actor akTarget, Bool ReturnItems = False);Rewrite o
     TargetPoint.SetAngle(0, 0, 0)
   EndIf
   Int i = ItemTypes.Length
+  Int JA_ArchList = JValue.retain(JArray.object())
   While i
     i -= 1
     Int JF_Contents = getContents(akTarget, sKey, ItemTypes[i], TargetData)
@@ -77,6 +78,9 @@ Function removeAllActorItems(Actor akTarget, Bool ReturnItems = False);Rewrite o
         Int JF_OtherContents = getContents(akTarget, ArchPair[0], "Struggle", TargetData)
         If JF_OtherContents
           JFormMap.removeKey(JF_OtherContents, ItemKey)
+          If JArray.findStr(JA_ArchList, ArchPair[0]) == -1
+            JArray.addStr(JA_ArchList, ArchPair[0])
+          EndIf
         EndIf
         SCXLib.extractActor(akTarget, ItemKey as Actor, sKey, ItemTypes[i], TargetPoint)
       EndIf
@@ -85,6 +89,14 @@ Function removeAllActorItems(Actor akTarget, Bool ReturnItems = False);Rewrite o
     JValue.clear(JF_Contents)
   EndWhile
   updateArchetype(akTarget)
+  Int k = JArray.count(JA_ArchList)
+  While k
+    k -= 1
+    SCX_BaseItemArchetypes UpdateArch = getSCX_BaseAlias(SCXSet.JM_BaseArchetypes, JArray.getStr(JA_ArchList, k)) as SCX_BaseItemArchetypes
+    If UpdateArch
+      UpdateArch.updateArchetype(akTarget)
+    EndIf
+  EndWhile
   Int Handle = ModEvent.Create("SCVRemoveAllActorItemsEvent")
   ModEvent.PushForm(Handle, akTarget)
   ModEvent.PushString(Handle, Arch._getStrKey())
@@ -147,6 +159,7 @@ Int Function addToContents(Actor akTarget, ObjectReference akReference = None, F
   String[] StoredInfo = StringUtil.Split(asStoredArchPlusType, ".")
   SCX_BaseItemArchetypes Arch = getSCX_BaseAlias(SCXSet.JM_BaseArchetypes, StoredInfo[0]) as SCX_BaseItemArchetypes
   If Arch
+    Note("Found arch.")
     If Prey.IsDead() || Prey.IsUnconscious()
       Return Arch.addToContents(Pred, Prey, None, StoredInfo[1])
     Else
@@ -154,10 +167,12 @@ Int Function addToContents(Actor akTarget, ObjectReference akReference = None, F
     EndIf
     Arch.updateArchetype(Pred)
   Else
-    Prey.Kill(Pred)
-    Prey.SetAlpha(0, True)
-    Prey.Delete()
-    Return 0
+    If Prey.IsDead() || Prey.IsUnconscious()
+      Prey.Kill(Pred)
+      Prey.SetAlpha(0, True)
+      Prey.Delete()
+      Return 0
+    EndIf
   EndIf
   Float Weight
   If afWeightValueOverride < 0
@@ -177,7 +192,6 @@ Int Function addToContents(Actor akTarget, ObjectReference akReference = None, F
   JMap.setStr(JM_ItemEntry, "StoredItemType", asStoredArchPlusType)
 
   JFormMap.setObj(JF_Contents, akReference, JM_ItemEntry)
-  JMap.setForm(PreyData, "SCV_Pred", Pred)
   JMap.setForm(PreyData, "SCV_Pred", Pred)
   Int InsertEvent = ModEvent.Create("SCV_InsertEvent")
   ModEvent.PushForm(InsertEvent, Pred)

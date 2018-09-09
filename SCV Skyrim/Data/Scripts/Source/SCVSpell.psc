@@ -173,7 +173,7 @@ Float Function calculateChance(Actor Pred, Actor Prey)
 
     ;Chance = SCVLib.clampFlt(PredHealthPercent - PreyHealthPercent, 0, 1)
     Chance = 1
-    Chance *= GetMagnitude()
+    Chance *= 1 + (GetMagnitude() / 100)
   EndIf
   ;Notice("Initial Generated chance = " + Chance)
 

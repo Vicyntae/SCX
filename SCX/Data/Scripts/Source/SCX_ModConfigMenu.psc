@@ -64,7 +64,11 @@ Event OnPageReset(string a_page)
     EndIf
   ElseIf a_page == "$SCXMCMInflationSettingsPage"
     SetCursorFillMode(LEFT_TO_RIGHT)
-    addBodyEditOptions()
+    AddMenuOptionST("SelectBodyEdit_M", "$SCXMCMSelectedBodyEdit", SelectedBodyEditName)
+    AddEmptyOption()
+    If SelectedBodyEdit
+      addBodyEditOptions(SelectedBodyEdit)
+    EndIf
   ElseIf a_page == "$SCXMCMOtherSettingsPage"
     SetCursorFillMode(LEFT_TO_RIGHT)
     AddKeyMapOptionST("MenuKeyPick_KM", "$SCXMCMMenuKeyOption_KM", SCXSet.MenuKey)
@@ -74,6 +78,48 @@ Event OnPageReset(string a_page)
     addOtherOptions(a_page)
   EndIf
 EndEvent
+
+String Property SelectedBodyEdit Auto
+String Property SelectedBodyEditName Auto
+String[] EditNames
+State SelectBodyEdit_M
+  Event OnMenuOpenST()
+    Int JM_BodyEditList = SCXSet.JM_BaseBodyEdits
+    Int NumEdits = JMap.count(JM_BodyEditList)
+    EditNames = Utility.CreateStringArray(NumEdits, "")
+    Int i = 0
+    While i < NumEdits
+      String asEdit = JMap.getNthKey(JM_BodyEditList, i)
+      Quest OwnedQuest = JMap.getForm(JM_BodyEditList, asEdit) as Quest
+      If OwnedQuest
+        SCX_BaseBodyEdit EditBase = OwnedQuest.GetAliasByName(asEdit) as SCX_BaseBodyEdit
+        If EditBase
+          EditNames[i] = EditBase.UIName
+        EndIf
+      EndIf
+      i += 1
+    EndWhile
+    SetMenuDialogOptions(EditNames)
+    SetMenuDialogStartIndex(0)
+    SetMenuDialogDefaultIndex(0)
+  EndEvent
+
+  Event OnMenuAcceptST(int a_index)
+    SelectedBodyEdit = JMap.getNthKey(SCXSet.JM_BaseBodyEdits, a_index)
+    SelectedBodyEditName = EditNames[a_index]
+    ForcePageReset()
+  EndEvent
+
+  Event OnDefaultST()
+    SelectedBodyEdit = JMap.getNthKey(SCXSet.JM_BaseBodyEdits, 0)
+    SelectedBodyEditName = EditNames[0]
+    ForcePageReset()
+  EndEvent
+
+  Event OnHighlightST()
+    SetInfoText("Choose body edit type.")
+  EndEvent
+EndState
 
 State SelectedActor_M
   Event OnMenuOpenST()
@@ -236,19 +282,29 @@ Function addPerkOptions()
   EndWhile
 EndFunction
 
-Function addBodyEditOptions()
-  Int JM_BodyEditList = SCXSet.JM_BaseBodyEdits
-  String asEdit = JMap.nextKey(JM_BodyEditList)
-  While asEdit
-    Quest OwnedQuest = JMap.getForm(JM_BodyEditList, asEdit) as Quest
+Function addBodyEditOptions(String asBodyEditID = "")
+  If asBodyEditID
+    Quest OwnedQuest = JMap.getForm(SCXSet.JM_BaseBodyEdits, asBodyEditID) as Quest
     If OwnedQuest
-      SCX_BaseBodyEdit EditBase = OwnedQuest.GetAliasByName(asEdit) as SCX_BaseBodyEdit
+      SCX_BaseBodyEdit EditBase = OwnedQuest.GetAliasByName(asBodyEditID) as SCX_BaseBodyEdit
       If EditBase
         EditBase.addMCMOptions(Self, JI_OptionIndexes)
       EndIf
     EndIf
-    asEdit = JMap.nextKey(JM_BodyEditList, asEdit)
-  EndWhile
+  Else
+    Int JM_BodyEditList = SCXSet.JM_BaseBodyEdits
+    String asEdit = JMap.nextKey(JM_BodyEditList)
+    While asEdit
+      Quest OwnedQuest = JMap.getForm(JM_BodyEditList, asEdit) as Quest
+      If OwnedQuest
+        SCX_BaseBodyEdit EditBase = OwnedQuest.GetAliasByName(asEdit) as SCX_BaseBodyEdit
+        If EditBase
+          EditBase.addMCMOptions(Self, JI_OptionIndexes)
+        EndIf
+      EndIf
+      asEdit = JMap.nextKey(JM_BodyEditList, asEdit)
+    EndWhile
+  EndIf
 EndFunction
 
 Event OnOptionSliderOpen(int a_option)
