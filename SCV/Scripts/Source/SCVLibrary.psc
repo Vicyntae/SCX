@@ -25,11 +25,21 @@ SCX_BasePerk Property Nourish
   EndFunction
 EndProperty
 
-Int ScriptVersion = 0
+Int ScriptVersion = 1
 Int Function checkVersion(Int aiStoredVersion)
-  If MCM.Pages.find("$SCVMCMSettingsPage") == -1
-    MCM.Pages = PapyrusUtil.PushString(MCM.Pages, "$SCVMCMSettingsPage")
+  If !MCM.Ready
+    Int j
+    While !MCM.Ready && j < 100
+      Utility.Wait(0.1)
+      j += 1
+    EndWhile
   EndIf
+  If MCM.Pages.find("$SCVMCMSettingsPage") == -1
+    MCM.Pages = Utility.ResizeStringArray(MCM.Pages, MCM.Pages.length + 1, "")
+    MCM.Pages[MCM.Pages.length - 1] = "$SCVMCMSettingsPage"
+    ;MCM.Pages = PapyrusUtil.PushString(MCM.Pages, "$SCVMCMSettingsPage")
+  EndIF
+
   Utility.Wait(1)
   SCX_BaseLibrary SCLib = JMap.getForm(SCXSet.JM_BaseLibraryList, "SCL_Library") as SCX_BaseLibrary
   SCX_BaseBodyEdit Belly = getSCX_BaseAlias(SCXSet.JM_BaseBodyEdits, "Belly") as SCX_BaseBodyEdit
@@ -421,8 +431,8 @@ Function addMCMActorRecords(SCX_ModConfigMenu MCM, Int JI_Options, Actor akTarge
 EndFunction
 
 Function addMCMOtherOptions(SCX_ModConfigMenu MCM, Int JI_Options, String asPage)
-  String sKey = _getStrKey()
-  If asPage == "$SCVMCMSettingsPagePage"
+  String SKey = _getStrKey()
+  If asPage == "$SCVMCMSettingsPage"
     JIntMap.setStr(JI_Options, MCM.AddSliderOption("Oral Predator Percent", SCVSet.OVPredPercent, "{0}%"), "LibOther." + SKey + ".SCVEditOVPredPercent")
     JIntMap.setStr(JI_Options, MCM.AddSliderOption("Anal Predator Percent", SCVSet.AVPredPercent, "{0}%"), "LibOther." + SKey + ".SCVEditAVPredPercent")
     JIntMap.setStr(JI_Options, MCM.AddSliderOption("Unbirth Predator Percent", SCVSet.UVPredPercent, "{0}%"), "LibOther." + SKey + ".SCVEditUVPredPercent")

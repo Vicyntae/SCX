@@ -51,7 +51,9 @@ Event OnConfigInit()
   Pages[2] = "$SCXMCMActorRecordsPage"
   Pages[3] = "$SCXMCMInflationSettingsPage"
   Pages[4] = "$SCXMCMOtherSettingsPage"
+  Ready = True
 EndEvent
+Bool Property Ready Auto
 
 Int Property JI_OptionIndexes Auto
 
