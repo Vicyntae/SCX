@@ -1,0 +1,2 @@
+b -a,h,B1.2,Tn SCL_VomitEvent01 SCL_VomitAnim.hkx
+b -a,h,B1.2,Tn SCL_InsertSmallItemEvent01 SCL_InsertSmallItem01.hkx
