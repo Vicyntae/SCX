@@ -97,6 +97,10 @@ Event OnPageReset(string a_page)
     SetCursorFillMode(LEFT_TO_RIGHT)
     AddKeyMapOptionST("MenuKeyPick_KM", "$SCXMCMMenuKeyOption_KM", SCXSet.MenuKey)
     AddKeyMapOptionST("StatusKeyPick_KM", "$SCXMCMStatusKeyOption_KM", SCXSet.StatusKey)
+    AddToggleOptionST("EnableFollowerTrack_TOG", "$SCXMCMEnableFollowerTrackOption_TOG", SCXSet.EnableFollowerTracking)
+    AddToggleOptionST("EnableUniqueTrack_TOG", "$SCXMCMEnableUniqueTrackOption_TOG", SCXSet.EnableUniqueTracking)
+    AddToggleOptionST("EnableNPCTrack_TOG", "$SCXMCMEnableNPCTrackOption_TOG", SCXSet.EnableNPCTracking)
+    AddEmptyOption()
     AddToggleOptionST("DebugEnable_TOG", "$SCXMCMDebugEnableOption_TOG", SCXSet.DebugEnable)
     AddEmptyOption()
     addProfileOptions()
@@ -585,6 +589,66 @@ State DebugEnable_TOG
 
 	Event OnHighlightST()
 		SetInfoText("$SCXMCMDebugEnableInfo")
+	EndEvent
+EndState
+
+State EnableFollowerTrack_TOG
+	Event OnSelectST()
+		SCXSet.EnableFollowerTracking = !SCXSet.EnableFollowerTracking
+    SCXSet.SCX_RejectList.Revert()
+    SetToggleOptionValueST(SCXSet.EnableFollowerTracking)
+	EndEvent
+
+	Event OnDefaultST()
+    If SCXSet.EnableFollowerTracking == False
+      SCXSet.EnableFollowerTracking = True
+      SCXSet.SCX_RejectList.Revert()
+      SetToggleOptionValueST(True)
+    EndIf
+	EndEvent
+
+	Event OnHighlightST()
+		SetInfoText("$SCXMCMEnableFollowerTrackInfo")
+	EndEvent
+EndState
+
+State EnableUniqueTrack_TOG
+	Event OnSelectST()
+		SCXSet.EnableUniqueTracking = !SCXSet.EnableUniqueTracking
+    SCXSet.SCX_RejectList.Revert()
+    SetToggleOptionValueST(SCXSet.EnableUniqueTracking)
+	EndEvent
+
+	Event OnDefaultST()
+    If SCXSet.EnableUniqueTracking == False
+      SCXSet.EnableUniqueTracking = True
+      SCXSet.SCX_RejectList.Revert()
+      SetToggleOptionValueST(True)
+    EndIf
+	EndEvent
+
+	Event OnHighlightST()
+		SetInfoText("$SCXMCMEnableUniqueTrackInfo")
+	EndEvent
+EndState
+
+State EnableNPCTrack_TOG
+	Event OnSelectST()
+		SCXSet.EnableNPCTracking = !SCXSet.EnableNPCTracking
+    SCXSet.SCX_RejectList.Revert()
+    SetToggleOptionValueST(SCXSet.EnableNPCTracking)
+	EndEvent
+
+	Event OnDefaultST()
+    If SCXSet.EnableNPCTracking == False
+      SCXSet.EnableNPCTracking = True
+      SCXSet.SCX_RejectList.Revert()
+      SetToggleOptionValueST(True)
+    EndIf
+	EndEvent
+
+	Event OnHighlightST()
+		SetInfoText("$SCXMCMEnableNPCTrackInfo")
 	EndEvent
 EndState
 

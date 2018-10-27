@@ -65,12 +65,18 @@ Int Function checkVersion(Int aiStoredVersion)
       Belly.CollectKeys[i] = "SCVStruggleWeightUterus"
     Else
       If !SCLib && Belly.CollectKeys.find("SCVStruggleWeightStomach") == -1
-        Belly.CollectKeys = PapyrusUtil.PushString(Belly.CollectKeys, "SCVStruggleWeightStomach")
+        Belly.CollectKeys = Utility.ResizeStringArray(Belly.CollectKeys, Belly.CollectKeys.Length + 1, "")
+        Belly.CollectKeys[Belly.CollectKeys.length - 1] = "SCVStruggleWeightStomach"
+        ;Belly.CollectKeys = PapyrusUtil.PushString(Belly.CollectKeys, "SCVStruggleWeightStomach")
       EndIf
       If !SCWLib &&Belly.CollectKeys.find("SCVStruggleWeightColon") == -1
-        Belly.CollectKeys = PapyrusUtil.PushString(Belly.CollectKeys, "SCVStruggleWeightColon")
+        Belly.CollectKeys = Utility.ResizeStringArray(Belly.CollectKeys, Belly.CollectKeys.Length + 1, "")
+        Belly.CollectKeys[Belly.CollectKeys.length - 1] = "SCVStruggleWeightColon"
+        ;Belly.CollectKeys = PapyrusUtil.PushString(Belly.CollectKeys, "SCVStruggleWeightColon")
       EndIf
       If Belly.CollectKeys.find("SCVStruggleWeightUterus") == -1
+        Belly.CollectKeys = Utility.ResizeStringArray(Belly.CollectKeys, Belly.CollectKeys.Length + 1, "")
+        Belly.CollectKeys[Belly.CollectKeys.length - 1] = "SCVStruggleWeightUterus"
         Belly.CollectKeys = PapyrusUtil.PushString(Belly.CollectKeys, "SCVStruggleWeightUterus")
       EndIf
     EndIf
@@ -80,7 +86,7 @@ Int Function checkVersion(Int aiStoredVersion)
     SCVSet.SCL_Installed = True
     SCX_BaseItemArchetypes Stomach = getSCX_BaseAlias(SCXSet.JM_BaseArchetypes, "Stomach") as SCX_BaseItemArchetypes
     If Stomach
-      Note("Stomach archetype found!")
+      ;Note("Stomach archetype found!")
       If Stomach.ItemTypes.length == 0
         Stomach.ItemTypes = New String[1]
         Stomach.ItemTypes[0] = "Struggle"
@@ -121,7 +127,7 @@ Int Function checkVersion(Int aiStoredVersion)
         Stomach.FullDescriptions[PlacedIndex] = "Actors currently struggling in this actor's stomach."
       EndIf
     Else
-      Note("Stomach archetype not found!")
+      ;Note("Stomach archetype not found!")
     EndIf
   Else
     SCVSet.SCL_Installed = False
@@ -132,7 +138,7 @@ Int Function checkVersion(Int aiStoredVersion)
 
   SCX_BaseLibrary SCWLib = JMap.getForm(SCXSet.JM_BaseLibraryList, "SCW_Library") as SCX_BaseLibrary
   If SCWLib
-    Note("SCWLibrary found! Setting up...")
+    ;Note("SCWLibrary found! Setting up...")
     SCVSet.SCW_Installed = True
   Else
     SCVSet.SCW_Installed = False

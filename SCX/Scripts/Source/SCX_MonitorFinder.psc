@@ -37,20 +37,31 @@ Int DMID = 3
 
 Bool Function Start()
   Bool bReturn = Parent.Start()
+  EnableDebugMessages = True
   ;Notice("Starting up, getting actors")
   If !SCX_MonitorManagerQuest.IsRunning()
     ;Notice("Monitor Manager not running!")
     SCX_MonitorManagerQuest.Start()
     Utility.Wait(2)
+    ;Note("Is Monitor Manager running? " + SCX_MonitorManagerQuest.IsRunning())
   EndIf
-  ReferenceAlias PlayerAlias = SCX_MonitorManagerQuest.GetNthAlias(0) as ReferenceAlias
-  If PlayerAlias.GetActorReference() != PlayerRef
-    ;Notice("Filling PlayerAlias")
+  ;/ReferenceAlias PlayerAlias = SCX_MonitorManagerQuest.GetNthAlias(0) as ReferenceAlias
+  Note("PlayerAlias Exists: " + PlayerAlias as Bool + ", Player Exists: " + PlayerRef.GetLeveledActorBase().GetName())
+  StartScriptTimer()
+  Actor PlayerAliasActor = PlayerAlias.GetReference() as Actor
+  StopScriptTimer()
+  Note("PlayerAliasActor = " + PlayerAliasActor.GetLeveledActorBase().GetName())
+  If PlayerAliasActor != PlayerRef
+    Note("Filling PlayerAlias")
     PlayerAlias.ForceRefTo(PlayerRef)
-  EndIf
+  Else
+    Note("PlayerAlias already filled!")
+  EndIf/;
   If !LoadedActors || LoadedActors.length != SCX_MonitorManagerQuest.GetNumAliases()
     ;Notice("Loaded Actors List not found! Remaking list...")
     LoadedActors = getActors()
+  Else
+    ;Note("Loaded actors found!")
   EndIf
   Form[] NewActors = getNewActors()
   Int JA_Teammates = JArray.object()
@@ -63,7 +74,6 @@ Bool Function Start()
     If LoadedActor && LoadedActor != PlayerRef
       Int j = NewActors.find(LoadedActor)
       If j < 0
-        ;Notice(nameGet(LoadedActor) + " is not in New Actors list! Removing...")
         LoadedActors[i] = None
         removeFromLoadedActors(LoadedActor, i)
       ElseIf i > MaxTrack ;Check if actor positions are filled
@@ -74,7 +84,6 @@ Bool Function Start()
     i += 1
   EndWhile
 
-  ;Notice("Adding new actors")
   i = 0
   LoadedNum = NewActors.length
   While i < LoadedNum
@@ -96,8 +105,9 @@ Bool Function Start()
         NoList = True
       EndIf
       Race Trackrace = NewActor.GetRace()
-      If !Trackrace.HasKeyword(SCXSet.ActorTypeNPC)
+      If !NewActor.HasKeyword(SCXSet.ActorTypeNPC)
         If !SCX_TrackRaceList.HasForm(Trackrace)
+          Note("Actor is not NPC, and race is not on track list. Rejected.")
           SCX_RejectList.AddForm(NewActor.GetLeveledActorBase())
           NoList = True
         EndIf
@@ -105,12 +115,12 @@ Bool Function Start()
       If !NoList
         Int j = LoadedActors.find(NewActor)
         If j < 0
-          ;Notice(nameGet(NewActor) + " is not in Monitor Manager! Adding...")
+          Notice(nameGet(NewActor) + " is not in Monitor Manager! Adding...")
           Int k = addToLoadedActors(NewActor)
           If k != -1
             LoadedActors[k] = NewActor
           Else
-            ;Notice("No slots open!")
+            Notice("No slots open!")
           EndIf
         EndIf
       EndIf
@@ -167,7 +177,6 @@ EndFunction
 EndEvent/;
 
 Function removeFromLoadedActors(Actor akTarget, Int i)
-  ;Notice("Removing Alias " + i + ": " + akTarget.GetLeveledActorBase().GetName())
   (SCX_MonitorManagerQuest.GetNthAlias(i) as ReferenceAlias).Clear()
   ;/Int i = SCX_MonitorManagerQuest.GetNumAliases()
   While i
@@ -189,12 +198,9 @@ Int Function addToLoadedActors(Actor akTarget)
   If MaxTrack > NumAlias - 1
     MaxTrack = NumAlias - 1
   EndIf
-  ;Note("Adding to loaded actor list. MaxTrack = " + MaxTrack)
   While i <= MaxTrack
-    ;Notice("Add: Checking Alias " + i)
     ReferenceAlias LoadedAlias = SCX_MonitorManagerQuest.GetNthAlias(i) as ReferenceAlias
-    If !LoadedAlias.GetActorReference()
-      ;Notice("Add: Found empty alias " + i)
+    If !LoadedAlias.GetReference() as Actor
       LoadedAlias.ForceRefTo(akTarget)
       Return i
     EndIf
@@ -204,16 +210,13 @@ Int Function addToLoadedActors(Actor akTarget)
 EndFunction
 
 Form[] Function getActors()
-;Notice("Getting current actor list...")
   Int i
   Int NumAlias = SCX_MonitorManagerQuest.GetNumAliases()
-  ;Note("NumAliases = " + NumAlias)
   Form[] ReturnArray = Utility.CreateFormArray(NumAlias, None)
   While i <  NumAlias
     ReferenceAlias LoadedAlias = SCX_MonitorManagerQuest.GetNthAlias(i) as ReferenceAlias
-    Actor Target = LoadedAlias.GetActorReference()
+    Actor Target = LoadedAlias.GetReference() as Actor
     If Target
-      ;Notice("Loaded actor = " + nameGet(Target))
       ReturnArray[i] = Target
     EndIf
     i += 1
@@ -222,10 +225,8 @@ Form[] Function getActors()
 EndFunction
 
 Form[] Function getNewActors()
-  ;Notice("Getting new actors list...")
   Int i
   Int NumAlias = GetNumAliases()
-  ;Note("NumAliases = " + NumAlias)
   Int JA_Teammates = JArray.object()
   Form[] ReturnArray = Utility.CreateFormArray(NumAlias, None)
   Faction FollowFact = SCXSet.CurrentFollowerFaction
@@ -233,7 +234,6 @@ Form[] Function getNewActors()
     ReferenceAlias LoadedAlias = GetNthAlias(i) as ReferenceAlias
     Actor Target = LoadedAlias.GetActorReference()
     If Target
-      ;Notice("Found Actor: " + nameGet(Target))
       ReturnArray[i] = Target
       If Target.IsInFaction(FollowFact)
         JArray.addForm(JA_Teammates, Target)

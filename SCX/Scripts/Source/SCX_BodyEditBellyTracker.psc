@@ -103,47 +103,25 @@ State SLIF
   EndEvent
 EndState
 
-Float UpperThreshold
-Float LowerThreshold
-Armor[] CurrentEquip
+Armor CurrentEquip
 Float CurrentSize
 Int CurrentSet
-String CurrentBodyMorph
-Int CurrentTier
 State Equipment
   Event OnBeginState()
     Notice("Starting Equipment State")
     purgeMethods()
-    If CurrentEquip.length != 3
-      CurrentEquip = New Armor[3]
-    EndIf
     CurrentSet = JMap.getInt(ActorData, Belly.EquipmentSetKey)
     Float TargetValue = JMap.getFlt(ActorData, "SCX_BodyEditBellyTargetValue")
     ;Get current armor level and jump to it
     Int Tier = Belly.findEquipTier(CurrentSet, TargetValue)
-    CurrentTier = Tier
     Armor NewArmor = Belly.getEquipment(CurrentSet, Tier)
     If NewArmor
       If !MyActor.IsEquipped(NewArmor)
         MyActor.AddItem(NewArmor, 1, True)
         MyActor.EquipItem(NewArmor, True)
       EndIf
-      CurrentEquip[1] = NewArmor
-      CurrentEquip[0] = Belly.getEquipment(CurrentSet, Tier - 1)
-      CurrentEquip[2] = Belly.getEquipment(CurrentSet, Tier + 1)
+      CurrentEquip = NewArmor
     EndIf
-
-    If CurrentEquip[2] as SCX_BaseEquipment
-      UpperThreshold = (CurrentEquip[2] as SCX_BaseEquipment).Threshold
-    Else
-      UpperThreshold = -1
-    EndIf
-    If CurrentEquip[0] as SCX_BaseEquipment
-      LowerThreshold = (CurrentEquip[1] as SCX_BaseEquipment).Threshold
-    Else
-      LowerThreshold = -1
-    EndIf
-
     RegisterForSingleUpdate(0.1)
   EndEvent
 
@@ -152,34 +130,18 @@ State Equipment
     If NewSet && NewSet != CurrentSet
       Notice("New set has been activated!")
       If MyActor.IsEquipped(CurrentEquip)
-        (CurrentEquip[1] as SCX_BaseEquipment).removeMorphs(MyActor)
+        (CurrentEquip as SCX_BaseEquipment).removeMorphs(MyActor)
         MyActor.UnequipItem(CurrentEquip, False, True)
         MyActor.RemoveItem(CurrentEquip, 1, False)
       EndIf
       Int Tier = Belly.findEquipTier(NewSet, CurrentSize)
-      CurrentTier = Tier
       Armor NewArmor = Belly.getEquipment(NewSet, Tier)
       If !MyActor.IsEquipped(NewArmor)
         MyActor.AddItem(NewArmor, 1, True)
         MyActor.EquipItem(NewArmor, True)
       EndIf
-      CurrentSet = NewSet
-      CurrentEquip[1] = NewArmor
-      CurrentEquip[0] = Belly.getEquipment(NewSet, Tier - 1)
-      CurrentEquip[2] = Belly.getEquipment(NewSet, Tier + 1)
-
-      If CurrentEquip[2] as SCX_BaseEquipment
-        UpperThreshold = (CurrentEquip[2] as SCX_BaseEquipment).Threshold
-      Else
-        UpperThreshold = -1
-      EndIf
-      If CurrentEquip[0] as SCX_BaseEquipment
-        LowerThreshold = (CurrentEquip[1] as SCX_BaseEquipment).Threshold
-      Else
-        LowerThreshold = -1
-      EndIf
+      CurrentEquip = NewArmor
     EndIf
-
     Float TargetValue = JMap.getFlt(ActorData, "SCX_BodyEditBellyTargetValue")
     Float Inc = Belly.Increment
     If RapidChange
@@ -195,62 +157,10 @@ State Equipment
     ElseIf TargetValue < CurrentSize
       CurrentSize -= Inc
     EndIf
-    ;Can only move between tiers if upper/lower Threshold isn't -1
-    If UpperThreshold != -1 && CurrentSize > UpperThreshold
-      CurrentTier += 1
-      If CurrentEquip
-        If MyActor.IsEquipped(CurrentEquip)
-          (CurrentEquip[1] as SCX_BaseEquipment).removeMorphs(MyActor)
-          MyActor.UnequipItem(CurrentEquip, False, True)
-          MyActor.RemoveItem(CurrentEquip, 1, True)
-        EndIf
-      EndIf
-      Armor NewArmor
-      NewArmor = CurrentEquip[2]
-      CurrentEquip[0] = CurrentEquip[1]
-      CurrentEquip[1] = NewArmor
-      CurrentEquip[2] = Belly.getEquipment(NewSet, CurrentTier + 1)
-      If NewArmor
-        If !MyActor.IsEquipped(NewArmor)
-          MyActor.AddItem(NewArmor, 1, True)
-          MyActor.EquipItem(NewArmor, True)
-        EndIf
-      EndIf
-      If CurrentEquip[2] as SCX_BaseEquipment
-        UpperThreshold = (CurrentEquip[2] as SCX_BaseEquipment).Threshold
-      Else
-        UpperThreshold = -1
-      EndIf
-      If CurrentEquip[0] as SCX_BaseEquipment
-        LowerThreshold = (CurrentEquip[1] as SCX_BaseEquipment).Threshold
-      Else
-        LowerThreshold = -1
-      EndIf
-    ElseIf LowerThreshold != -1 && CurrentSize < LowerThreshold
-      CurrentTier -= 1
-      If CurrentEquip
-        If MyActor.IsEquipped(CurrentEquip)
-          (CurrentEquip[1] as SCX_BaseEquipment).removeMorphs(MyActor)
-          MyActor.UnequipItem(CurrentEquip, False, True)
-          MyActor.RemoveItem(CurrentEquip, 1, True)
-        EndIf
-      EndIf
-      Armor NewArmor
-      NewArmor = CurrentEquip[0]
-      CurrentEquip[0] = Belly.getEquipment(NewSet, CurrentTier - 1)
-      CurrentEquip[1] = NewArmor
-      CurrentEquip[2] = CurrentEquip[1]
-      If NewArmor
-        If !MyActor.IsEquipped(NewArmor)
-          MyActor.AddItem(NewArmor, 1, True)
-          MyActor.EquipItem(NewArmor, True)
-        EndIf
-      EndIf
-      UpperThreshold = (CurrentEquip[2] as SCX_BaseEquipment).Threshold
-      LowerThreshold = (CurrentEquip[1] as SCX_BaseEquipment).Threshold
-    EndIf
-    If CurrentEquip[1] as SCX_BaseEquipment
-      (CurrentEquip[1] as SCX_BaseEquipment).ApplyMorphs(MyActor, CurrentSize)
+
+
+    If CurrentEquip as SCX_BaseEquipment
+      CurrentEquip = (CurrentEquip as SCX_BaseEquipment).ApplyMorphs(MyActor, CurrentSize)
     EndIf
     Float Rate = Belly.IncrementRate
     If RapidChange
@@ -266,18 +176,16 @@ Function purgeMethods()
   If SLIF_Main.HasScale(MyActor, FullModKey, sKey)
     SLIF_Main.resetActor(MyActor, FullModKey, sKey)
   EndIf
-  If CurrentEquip.Length
-    SCX_BaseEquipment Equip = CurrentEquip[1] as SCX_BaseEquipment
+  If CurrentEquip
+    SCX_BaseEquipment Equip = CurrentEquip as SCX_BaseEquipment
     If Equip
+      Equip.removeMorphs(MyActor)
       If MyActor.IsEquipped(Equip)
-        Equip.removeMorphs(MyActor)
         MyActor.UnequipItem(Equip, False, True)
         MyActor.RemoveItem(Equip, 1, True)
       EndIf
     EndIf
-    CurrentEquip[0] = None
-    CurrentEquip[1] = None
-    CurrentEquip[2] = None
+    CurrentEquip = None
   EndIf
 EndFunction
 

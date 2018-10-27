@@ -23,7 +23,7 @@ Float LastDailyUpdate
 Bool QueueDailyUpdate
 
 Function reloadMaintenence()
-  Note("Running reload maintenence...")
+  ;Note("Running reload maintenence...")
   RegisterForModEvent("SCX_Reset", "OnSCXReset")
   RegisterForSingleUpdate(UpdateRate)
 EndFunction
@@ -47,13 +47,14 @@ EndEvent
 
 Bool Function Start()
   Bool bReturn = Parent.Start()
-  Utility.Wait(3)
-  Notice("Starting up monitor manager")
+  EnableDebugMessages = True
+  ;Notice("Starting up monitor manager")
+  ;Utility.Wait(3)
   ;RegisterForSleep()
   RegisterForMenu("Sleep/Wait Menu")
   RegisterForModEvent("SCLReset", "OnSCLReset")
   RegisterForSingleUpdate(UpdateRate)
-  (GetNthAlias(0) as SCX_Monitor).Setup()
+  ;(GetNthAlias(0) as SCX_Monitor).Setup()
   Return bReturn
 EndFunction
 
@@ -115,7 +116,6 @@ Int Property JA_MonitorUpdatePrioityList
 EndProperty
 
 Event OnUpdate()
-  Note("Updating monitors.")
   Float CurrentUpdateTime = Utility.GetCurrentGameTime()
   ;Notice("Updating actor list")
   Bool DailyUpdate = False
@@ -137,7 +137,7 @@ Event OnUpdate()
       Int TargetData = getTargetData(akTarget)
       Float TimePassed = ((CurrentUpdateTime - (JMap.getFlt(TargetData, "LastUpdateTime")))*24) ;In hours
       If TargetData
-        Notice("Beginning full updates for " + nameGet(akTarget))
+        ;Notice("Beginning full updates for " + nameGet(akTarget))
         Int handle = ModEvent.Create("SCX_MonitorUpdate")
         ModEvent.PushForm(handle, akTarget)
         ModEvent.PushFloat(handle, TimePassed)

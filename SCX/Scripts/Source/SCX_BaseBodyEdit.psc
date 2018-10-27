@@ -193,6 +193,7 @@ String Property CurrentProfileKey
     Return _CurrentProfileKey
   EndFunction
   Function Set(String a_val)
+    saveProfile()
     _CurrentProfileKey = a_val
     JM_Settings = JMap.getObj(JM_ProfileList, _CurrentProfileKey)
   EndFunction
@@ -204,7 +205,15 @@ Int Property JM_ProfileList
   EndFunction
 EndProperty
 
-Int Property JM_Settings Auto
+Int _JM_Settings
+Int Property JM_Settings
+  Int Function get()
+    Return _JM_Settings
+  EndFunction
+  Function set(Int a_val)
+    _JM_Settings = JValue.releaseAndRetain(_JM_Settings, a_val)
+  EndFunction
+EndProperty
 
 Function saveProfile()
   JValue.writeToFile(JM_Settings, "Data/SCX/" + _getStrKey() + "/Profiles/" + CurrentProfileKey)
@@ -256,7 +265,7 @@ Int Function findEquipTier(Int aiSet, Float fValue)
   Int R = JIntMap.count(JI_EquipSetList) - 1
   While L < R
     Int m = Math.floor((L + R) / 2)
-    Float s = (JIntMap.getForm(JI_EquipSetList, m) as SCX_BaseEquipment).Threshold
+    Float s = (JIntMap.getForm(JI_EquipSetList, m) as SCX_BaseEquipment).Thresholds[0]
     If s < fValue
       L = m + 1
     ElseIf s > fValue

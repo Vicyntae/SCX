@@ -1,13 +1,14 @@
 ScriptName SCX_Library Extends SCX_BaseLibrary
 
-String ScriptID = "SCXLib"
 Int Property JCReqAPI = 3 Auto
 Int Property JCReqFV = 3 Auto
 
 ;Filled Properties *************************************************************
-Function Setup()
+Function reloadMaintenence()
+  SCXSet.SCX_MonitorCycleQuest.Start()
   RegisterForModEvent("SCX_LibraryActorMainMenuOpen", "OnActorMainMenuOpen")
 EndFunction
+
 
 Bool Function isModInstalled(String Mod) Global
 	Return Game.GetModByName(Mod) != 255

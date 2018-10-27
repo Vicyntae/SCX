@@ -11,40 +11,60 @@ EndProperty
 Actor Property PlayerRef Auto
 Bool Property EnableDebugMessages Auto
 
+Bool Initialized
 Event OnInit()
-  Utility.WaitMenuMode(Utility.RandomFloat(0.1, 5))
-  _setup()
-  Setup()
-  If !SCXSet
-    SCXSet = JMap.getForm(SCX_Library.getJM_QuestList(), "SCX_Settings") as SCX_Settings
-  EndIf
-  If !SCXLib
-    SCXLib = JMap.getForm(SCXSet.JM_QuestList, "SCX_Library") as SCX_Library
-  EndIf
-  If SCXSet
-    Int JC_Container = _getSCX_JC_List()
-    If JC_Container
-      If JValue.isMap(JC_Container)
-        String ListKey = _getStrKey()
-        If ListKey
+  If !Initialized
+    ;Utility.wait(0.2)
+    Initialized = True
+    If !SCXSet
+      SCXSet = JMap.getForm(SCX_Library.getJM_QuestList(), "SCX_Settings") as SCX_Settings
+    EndIf
+    If !SCXLib
+      SCXLib = JMap.getForm(SCXSet.JM_QuestList, "SCX_Library") as SCX_Library
+    EndIf
+    If SCXSet
+      Int JC_Container = _getSCX_JC_List()
+      If JC_Container
+        If JValue.isMap(JC_Container)
+          String ListKey = _getStrKey()
+          If ListKey
+            JMap.setForm(JC_Container, _getStrKey(), GetOwningQuest())
+            If !JMap.hasKey(JC_Container, _getStrKey())
+              While !JMap.hasKey(JC_Container, _getStrKey())
+                JMap.setForm(JC_Container, _getStrKey(), GetOwningQuest())
+              EndWhile
+            EndIf
+          Else
+            Issue("RefAlias " + GetName() + "has JC_List but lacks StringKey!", 1)
+          EndIf
+        ElseIf JValue.isIntegerMap(JC_Container)
+          Int ListKey = _getIntKey()
+          If ListKey
+            JIntMap.setForm(JC_Container, _getIntKey(), GetOwningQuest())
+            If !JMap.hasKey(JC_Container, _getIntKey())
+              While !JMap.hasKey(JC_Container, _getIntKey())
+                JMap.setForm(JC_Container, _getIntKey(), GetOwningQuest())
+              EndWhile
+            EndIf
+          Else
+            Issue("RefAlias " + GetName() + "has JC_List but lacks IntKey!", 1)
+          EndIf
+        EndIf
+      Else
+        ;Notice("JC_List not available for refalias " + GetName() + ".")
+      EndIf
+      JMap.setForm(SCXSet.JM_RefAliasList, _getStrKey(), GetOwningQuest())
+      If !JMap.hasKey(JC_Container, _getStrKey())
+        While !JMap.hasKey(JC_Container, _getStrKey())
           JMap.setForm(JC_Container, _getStrKey(), GetOwningQuest())
-        Else
-          Issue("RefAlias " + GetName() + "has JC_List but lacks StringKey!", 1)
-        EndIf
-      ElseIf JValue.isIntegerMap(JC_Container)
-        Int ListKey = _getIntKey()
-        If ListKey
-          JIntMap.setForm(JC_Container, _getIntKey(), GetOwningQuest())
-        Else
-          Issue("RefAlias " + GetName() + "has JC_List but lacks IntKey!", 1)
-        EndIf
+        EndWhile
       EndIf
     Else
-      ;Notice("JC_List not available for refalias " + GetName() + ".")
+      Issue("SCX_Settings wasn't found! Please check SCX Installation", 2, True)
     EndIf
-    JMap.setForm(SCXSet.JM_RefAliasList, _getStrKey(), GetOwningQuest())
-  Else
-    Issue("SCX_Settings wasn't found! Please check SCX Installation", 2, True)
+    _setup()
+    Setup()
+    _reloadMaintenence()
   EndIf
 EndEvent
 

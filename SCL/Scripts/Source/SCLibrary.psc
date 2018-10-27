@@ -18,11 +18,12 @@ Int Function checkVersion(Int aiStoredVersion)
     Belly.CollectKeys[0] = "SCLStomachFullness"
   Else
     If Belly.CollectKeys.find("SCLStomachFullness") == -1
-      Belly.CollectKeys = PapyrusUtil.PushString(Belly.CollectKeys, "SCLStomachFullness")
+      Belly.CollectKeys = Utility.ResizeStringArray(Belly.CollectKeys, Belly.CollectKeys.Length + 1, "")
+      Belly.CollectKeys[Belly.CollectKeys.length - 1] = "SCLStomachFullness"
+      ;Belly.CollectKeys = PapyrusUtil.PushString(Belly.CollectKeys, "SCLStomachFullness")
     EndIf
   EndIf
   If ScriptVersion >= 1 && aiStoredVersion < 1
-    Note("Adding entries for dummy items.")
     JFormDB.solveIntSetter(SCLSet.SCL_DummyNotFoodLarge, ".SCX_ItemDatabase.STIsNotFood", 1, True)
     JFormDB.solveIntSetter(SCLSet.SCL_DummyNotFoodMedium, ".SCX_ItemDatabase.STIsNotFood", 1, True)
     JFormDB.solveIntSetter(SCLSet.SCL_DummyNotFoodSmall, ".SCX_ItemDatabase.STIsNotFood", 1, True)
@@ -684,7 +685,6 @@ Function updateDamage(Actor akTarget, Int aiTargetData = 0)
   ;Need to rethink how this is applied. Make sure that if the calculated tier is greater that max num of spells,
   ;it picks the highest one
   ;Also remember to add modifier based on current fullness (if > 100, add 1 tier)
-  Note("Updating damage...")
   Int TargetData
   If aiTargetData
     TargetData = aiTargetData
@@ -698,9 +698,7 @@ Function updateDamage(Actor akTarget, Int aiTargetData = 0)
     JMap.setFlt(aiTargetData, "SCLHighestStomachFullness", Fullness)
   EndIf
 
-  Note("Fullness = " + Fullness + ", MaxCap = " + MaxCap)
   If Fullness > MaxCap && canVomit(akTarget)
-    Note(nameGet(akTarget) + " is overfull! Vomiting...")
     Stomach.removeAmountActorItems(akTarget,Fullness * 0.3, 0.2, 0.2)
     addVomitDamage(akTarget)
     Stomach.updateArchetype(akTarget)
@@ -716,7 +714,6 @@ Function updateDamage(Actor akTarget, Int aiTargetData = 0)
 
   Int CurrentOverfull = getCurrentOverfull(akTarget, TargetData)
   If OverfullTier != CurrentOverfull
-    Note("Actor overfull! adding damage spell level " + OverfullTier)
     SCLSet.SCL_OverfullSpellArray[0].cast(akTarget) ;If it's tier 0, it casts the dispel effect and nothing else
     Utility.Wait(0.2)
     SCLSet.SCL_OverfullSpellArray[OverfullTier].cast(akTarget)

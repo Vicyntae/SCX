@@ -28,7 +28,6 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
   MyActor = akTarget
   ActorData = SCXLib.getTargetData(MyActor)
   Gender = MyActor.GetLeveledActorBase().GetSex() as Bool
-  Notice("Muscle tracker starting! Starting method = " + Gender)
   If Gender
     ;GoToState("Female")
   Else
@@ -102,15 +101,15 @@ State Male
     If SCX_Library.isModInstalled("RaceMenuPluginSAM.esp")
       iMode = 2
       akQuest = Game.GetFormFromFile(0x01000800, "RaceMenuPluginSAM.esp") as Quest
-      Note("SAM Racemenu plugin found! iMode = 2")
+      ;Note("SAM Racemenu plugin found! iMode = 2")
     ElseIf SCX_Library.isModInstalled("SAM - Shape Atlas for Men.esp")
       akQuest = Game.GetFormFromFile(0x02000d62, "SAM - Shape Atlas for Men.esp") as Quest
-      Note("SAM Found! iMode = 1")
+      ;Note("SAM Found! iMode = 1")
       SavedSamson = SAM_Data.GetSamson(MyActor)
       SavedSamuel = SAM_Data.GetSamuel(MyActor)
       iMode = 1
     Else
-      Note("No plugin found! iMode = 0")
+      ;Note("No plugin found! iMode = 0")
       iMode = 0
     EndIf
     RegisterForSingleUpdate(0.1)
@@ -140,7 +139,7 @@ State Male
     EndIf
     Float FinalSamson = CurrentSize * (Samson)
     Float FinalSamuel = CurrentSize * (Samuel)
-    Note("Final Samson = " + FinalSamson + ", Final Samuel = " + FinalSamuel)
+    ;Note("Final Samson = " + FinalSamson + ", Final Samuel = " + FinalSamuel)
     If iMode == 1
       SAM_Data.setSamson(MyActor, FinalSamson)
       SAM_Data.setSamson(MyActor, FinalSamuel)

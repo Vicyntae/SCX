@@ -1,12 +1,10 @@
 ScriptName SCX_Settings Extends SCX_BaseSettings
 
-Event OnInit()
-  JMap.setForm(JM_QuestList, "SCX_Settings", Self)
-  JMap.setForm(JM_SettingsList, "SCX_Settings", Self)
-EndEvent
-
 SCX_GameLibrary Property GameLibrary Auto
 ;ID = "SCX_Settings"
+
+Event OnInit()
+EndEvent
 
 ;Tracking Settings *************************************************************
 GlobalVariable Property SCX_SET_EnableFollowerTracking Auto;Default 0
@@ -304,6 +302,7 @@ Form[] Property TeammatesList
   EndFunction
 EndProperty
 Message Property SCX_MES_TakePerk Auto
+Formlist Property SCX_RejectList Auto
 FormList Property SCX_TrackRaceList Auto
 Form[] Property LoadedActors
   Form[] Function Get()
@@ -357,6 +356,8 @@ Keyword Property ActorTypeNPC
   Keyword Function get()
     If GameLibrary
       Return GameLibrary.ActorTypeNPC
+    Else
+      Return None
     EndIf
   EndFunction
 EndProperty
@@ -368,6 +369,7 @@ Int Property JM_QuestList
     If !JValue.isExists(QuestList) || !JValue.isMap(QuestList)
       QuestList = JMap.object()
       JDB.solveObjSetter(".SCX_ExtraData.JM_QuestList", QuestList, True)
+      JMap.setForm(QuestList, "SCX_Settings", Self)
       Int Handle = ModEvent.Create("SCX_BuildQuestList")
       ModEvent.Send(Handle)
     EndIf
@@ -484,6 +486,7 @@ Int Property JM_SettingsList
     Int SettingsList = JDB.solveObj(".SCX_ExtraData.JM_SettingsList")
     If !JValue.isExists(SettingsList) || !JValue.isMap(SettingsList)
       SettingsList = JMap.object()
+      JMap.setForm(SettingsList, "SCX_Settings", Self)
       JDB.solveObjSetter(".SCX_ExtraData.JM_SettingsList", SettingsList, True)
       Int Handle = ModEvent.Create("SCX_BuildSettingsList")
       ModEvent.Send(Handle)

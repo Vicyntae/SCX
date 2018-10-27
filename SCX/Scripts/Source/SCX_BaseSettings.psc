@@ -65,7 +65,15 @@ Int Property JM_ProfileList
   EndFunction
 EndProperty
 
-Int Property JM_Settings Auto
+Int _JM_Settings
+Int Property JM_Settings
+  Int Function get()
+    Return _JM_Settings
+  EndFunction
+  Function set(Int a_val)
+    _JM_Settings = JValue.releaseAndRetain(_JM_Settings, a_val)
+  EndFunction
+EndProperty
 
 Function saveProfile()
   JValue.writeToFile(JM_Settings, "Data/SCX/" + ModFolderName + "/Profiles/" + CurrentProfileKey)

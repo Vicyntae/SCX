@@ -1,8 +1,9 @@
 ScriptName SCX_MonitorPlayer Extends SCX_Monitor
 
-Function Setup()
-  Parent.Setup()
-  ;EnableDebugMessages = True
+Function setupMonitor()
+  Parent.setupMonitor()
+  EnableDebugMessages = True
+  Notice("Starting player monitor.")
   RegisterForModEvent("SCX_KeyBindChange", "OnKeyChange")
   RegisterForKey(SCXSet.MenuKey)
   RegisterForKey(SCXSet.StatusKey)

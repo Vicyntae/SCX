@@ -31,9 +31,14 @@ String Function _getStrKey()
   Return "SCX_Monitor" + GetID()
 EndFunction
 
-Function Setup()
+Event OnInit()
+
+EndEvent
+
+Function setupMonitor()
+  EnableDebugMessages = True
   Notice("Running setup...")
-  Lock()
+  ;Lock()
   Actor Target = GetActorReference()
   If Target && Target != MyActor
     MyActor = Target
@@ -47,13 +52,16 @@ Function Setup()
     While i < NumLibs
       SCX_BaseLibrary Lib = JArray.getForm(JA_UpdateList, i) as SCX_BaseLibrary
       If Lib
+        Note("Library Found!")
         Lib.monitorSetup(Self, MyActor)
+      Else
+        Note("Library not found!")
       EndIf
       i += 1
     EndWhile
   EndIf
   RegisterForModEvent("SCX_MonitorUpdate", "OnMonitorUpdate")
-  Unlock()
+  ;Unlock()/;
 EndFunction
 
 Function ForceRefTo(ObjectReference akNewRef)
@@ -73,7 +81,7 @@ Function ForceRefTo(ObjectReference akNewRef)
     EndWhile
   EndIf
   Parent.ForceRefTo(akNewRef)
-  Setup()
+  setupMonitor()
 EndFunction
 
 Function Clear()

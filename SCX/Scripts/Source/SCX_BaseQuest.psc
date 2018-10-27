@@ -11,42 +11,48 @@ String Property DebugName
 EndProperty
 Bool Property EnableDebugMessages Auto
 
+Bool Initialized
 Event OnInit()
-  Utility.WaitMenuMode(Utility.RandomFloat(0.1, 5))
-  _setup()
-  Setup()
-  If !SCXSet
-    SCXSet = JMap.getForm(SCX_Library.getJM_QuestList(), "SCX_Settings") as SCX_Settings
-  EndIf
-  If !SCXLib
-    SCXLib = JMap.getForm(SCXSet.JM_QuestList, "SCX_Library") as SCX_Library
-  EndIf
-  If SCXSet
-    Int JC_Container = _getSCX_JC_List()
-    If JC_Container
-      If JValue.isMap(JC_Container)
-        String ListKey = _getStrKey()
-        If ListKey
-          JMap.setForm(JC_Container, _getStrKey(), Self)
-        Else
-          Issue("Quest " + GetName() + "has JC_List but lacks StringKey!", 1)
-        EndIf
-      ElseIf JValue.isIntegerMap(JC_Container)
-        Int ListKey = _getIntKey()
-        If ListKey
-          JIntMap.setForm(JC_Container, _getIntKey(), Self)
-        Else
-          Issue("Quest " + GetName() + "has JC_List but lacks IntKey!", 1)
-        EndIf
-      EndIf
-    Else
-      ;Notice("JC_List not available for quest " + GetName() + ".")
+  If !Initialized
+    Utility.Wait(0.2)
+    ;Notice("Starting up quest...")
+    Initialized = True
+    If !SCXSet
+      SCXSet = JMap.getForm(SCX_Library.getJM_QuestList(), "SCX_Settings") as SCX_Settings
     EndIf
-    JMap.setForm(SCXSet.JM_QuestList, _getStrKey(), Self)
-  Else
-    Issue("SCX_Settings wasn't found! Please check SCX Installation", 2, True)
+    If !SCXLib
+      SCXLib = JMap.getForm(SCXSet.JM_QuestList, "SCX_Library") as SCX_Library
+    EndIf
+    If SCXSet
+      Int JC_Container = _getSCX_JC_List()
+      If JC_Container
+        If JValue.isMap(JC_Container)
+          String ListKey = _getStrKey()
+          If ListKey
+            JMap.setForm(JC_Container, _getStrKey(), Self)
+          Else
+            Issue("Quest " + GetName() + "has JC_List but lacks StringKey!", 1)
+          EndIf
+        ElseIf JValue.isIntegerMap(JC_Container)
+          Int ListKey = _getIntKey()
+          If ListKey
+            JIntMap.setForm(JC_Container, _getIntKey(), Self)
+          Else
+            Issue("Quest " + GetName() + "has JC_List but lacks IntKey!", 1)
+          EndIf
+        EndIf
+      Else
+        ;Notice("JC_List not available for quest " + GetName() + ".")
+      EndIf
+      JMap.setForm(SCXSet.JM_QuestList, _getStrKey(), Self)
+    Else
+      Issue("SCX_Settings wasn't found! Please check SCX Installation", 2, True)
+    EndIf
+    ;Note("Done initializing quest.")
+    _setup()
+    Setup()
+    _reloadMaintenence()
   EndIf
-  _reloadMaintenence()
 EndEvent
 
 Int Function _getSCX_JC_List()

@@ -14,17 +14,9 @@ EndFunction
 Function editBodyPart(Actor akTarget, Float afValue, String asMethodOverride = "", Int aiEquipSetOverride = 0, String asShortModKey = "SCX.esp", String asFullModKey = "Skyrim Character Extended")
   If EnableMorph
     SCX_BodyEditMuscleEnable.SetValueInt(1)
-    Note("Edit body part called! Target = " + akTarget.GetLeveledActorBase().GetName())
-    If SCXSet.ActorTypeNPC
-      Note("Found Actor Keyword")
-    Else
-      Note("Couldn't find actor Keyword!")
-    EndIf
     If !akTarget.HasKeyword(SCXSet.ActorTypeNPC)
-      Note("Actor lacks keyword! Checking creature races!")
       Race akRace = akTarget.GetRace()
       If CreatureRaces.find(akRace) == -1
-        Note("Actor is not on the list!")
         Return
       EndIf
     EndIf
@@ -35,13 +27,8 @@ Function editBodyPart(Actor akTarget, Float afValue, String asMethodOverride = "
     ;afValue = curveValue(afValue)
     afValue = PapyrusUtil.ClampFloat(afValue, Minimum, Maximum)
 
-    Note(akTarget.GetLeveledActorBase().GetName() + " Value = " + afValue)
+    ;Note(akTarget.GetLeveledActorBase().GetName() + " Value = " + afValue)
     JMap.setFlt(TargetData, "SCM_BodyEditMuscleTargetValue", afValue)
-    If SCM_BodyEditMuscleSpell
-      Note("Found Spell!")
-    Else
-      Note("Couldn't find spell!")
-    EndIf
     If !akTarget.HasSpell(SCM_BodyEditMuscleSpell)
       akTarget.AddSpell(SCM_BodyEditMuscleSpell, True)
     EndIf
