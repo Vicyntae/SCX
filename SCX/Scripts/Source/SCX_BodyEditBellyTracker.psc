@@ -15,7 +15,7 @@ String Property DebugName
     EndIf
   EndFunction
 EndProperty
-Bool EnableDebugMessages = False
+Bool EnableDebugMessages = True
 Bool RapidChange
 String ShortModKey = "SCX.esp"
 String FullModKey = "Skyrim Character Extended"

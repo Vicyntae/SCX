@@ -36,7 +36,9 @@ Int Function checkVersion(Int aiStoredVersion)
   EndIf
   If MCM.Pages.find("$SCVMCMSettingsPage") == -1
     MCM.Pages = Utility.ResizeStringArray(MCM.Pages, MCM.Pages.length + 1, "")
-    MCM.Pages[MCM.Pages.length - 1] = "$SCVMCMSettingsPage"
+    String LastOption = MCM.Pages[MCM.Pages.length - 2]
+    MCM.Pages[MCM.Pages.length - 2] = "$SCVMCMSettingsPage"
+    MCM.Pages[MCM.Pages.length - 1] = LastOption
     ;MCM.Pages = PapyrusUtil.PushString(MCM.Pages, "$SCVMCMSettingsPage")
   EndIF
 

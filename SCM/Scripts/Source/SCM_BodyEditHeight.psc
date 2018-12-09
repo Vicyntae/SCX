@@ -236,8 +236,33 @@ Function setSelectOptions(SCX_ModConfigMenu MCM, String asValue, Int aiOption)
   EndIf
 EndFunction
 
-Bool Property EnableMorph Auto
-Float Property HeightWeighting Auto
+Bool Property EnableMorph
+  Bool Function Get()
+    If !JMap.hasKey(JM_Settings, "EnableMorph")
+      JMap.setInt(JM_Settings, "EnableMorph", 0)
+    EndIf
+    Return JMap.getInt(JM_Settings, "EnableMorph") as Bool
+  EndFunction
+  Function Set(Bool a_val)
+    If a_val
+      JMap.setInt(JM_Settings, "EnableMorph", 1)
+    Else
+      JMap.setInt(JM_Settings, "EnableMorph", 0)
+    EndIf
+  EndFunction
+EndProperty
+
+Float Property HeightWeighting
+  Float Function Get()
+    If !JMap.hasKey(JM_Settings, "HeightWeighting")
+      JMap.setFlt(JM_Settings, "HeightWeighting", 1)
+    EndIf
+    Return JMap.getFlt(JM_Settings, "HeightWeighting")
+  EndFunction
+  Function Set(Float a_val)
+    JMap.setFlt(JM_Settings, "HeightWeighting", a_val)
+  EndFunction
+EndProperty
 
 Int Property JM_ActorValueWeights
   Int Function Get()

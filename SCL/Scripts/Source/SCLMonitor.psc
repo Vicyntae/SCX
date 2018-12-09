@@ -4,6 +4,7 @@ SCLibrary Property SCLib Auto
 SCLSettings Property SCLSet Auto
 SCX_Settings Property SCXSet Auto
 SCX_Library Property SCXLib Auto
+SCX_BaseItemArchetypes Property Stomach Auto
 
 String Property DebugName
   String Function Get()
@@ -13,7 +14,7 @@ EndProperty
 
 Bool EnableDebugMessages = True
 Event OnEffectStart(Actor akTarget, Actor akCaster)
-  Debug.Notification("SCL Monitor Starting!...")
+  Note("SCL Monitor Starting!...")
 EndEvent
 
 ;/Event OnQuickUpdate()
@@ -36,56 +37,60 @@ Event OnObjectEquipped(Form akBaseObject, ObjectReference akReference)
   If akBaseObject as Potion || akBaseObject as Ingredient
     Int JM_Entry = SCLib.getItemDatabaseEntry(akBaseObject)
     Note("Item equipped: " + akBaseObject.GetName() + ". Entry found: " + JValue.isExists(JM_Entry))
-    If JMap.getInt(JM_Entry, "STIsNotFood") == 0 || (akBaseObject as Potion).IsPoison()
-      SCLib.Notice(akBaseObject.GetName() + " was eaten!")
-      Bool FirstItem
-      If !JF_AddQueue
-        JF_AddQueue = JValue.retain(JFormMap.object())
-        FirstItem = True
-      Else
-        AddQueueNum += 1
-      EndIf
-      If akReference
-        If JFormMap.hasKey(JF_AddQueue, akReference)
-          JFormMap.setInt(JF_AddQueue, akReference, JFormMap.getInt(JF_AddQueue, akReference) + 1)
-        Else
-          JFormMap.setInt(JF_AddQueue, akReference, 1)
-        EndIf
-      Else
-        If JFormMap.hasKey(JF_AddQueue, akBaseObject)
-          JFormMap.setInt(JF_AddQueue, akBaseObject, JFormMap.getInt(JF_AddQueue, akBaseObject) + 1)
-        Else
-          JFormMap.setInt(JF_AddQueue, akBaseObject, 1)
-        EndIf
-      EndIf
-      Utility.Wait(0.5)
-      If FirstItem
-        While AddQueueNum > 0
-          Utility.Wait(1)
-        EndWhile
-      Else
-        AddQueueNum -= 1
-        Return
-      EndIf
-      Form ItemKey = JFormMap.nextKey(JF_AddQueue)
-      While ItemKey
-        Form Base
-        If ItemKey as ObjectReference
-          Base = (ItemKey as ObjectReference).GetBaseObject()
-        Else
-          Base = ItemKey
-        EndIf
-        SCLib.Stomach.addToContents(GetTargetActor(), ItemKey as ObjectReference, Base, "Breakdown", aiItemCount = JFormMap.getInt(JF_AddQueue, ItemKey, 1))
-        ItemKey = JFormMap.nextKey(JF_AddQueue, ItemKey)
-      EndWhile
-      SCLib.Stomach.updateArchetype(GetTargetActor())
-      SCLib.updateDamage(GetTargetActor())
-      Int Handle = ModEvent.Create("SCLActorItemEaten")
-      ModEvent.PushForm(Handle, GetTargetActor())
-      ModEvent.PushInt(Handle, JF_AddQueue)
-      ModEvent.Send(Handle)
-      JF_AddQueue = JValue.release(JF_AddQueue)
+    If JMap.getInt(JM_Entry, "STIsNotFood") != 0 || (akBaseObject as Potion).IsPoison()
+      Note("Item is not food! Returning...")
+      Return
     EndIf
+    Note(akBaseObject.GetName() + " was eaten!")
+    Bool FirstItem
+    If !JF_AddQueue
+      JF_AddQueue = JValue.retain(JFormMap.object())
+      FirstItem = True
+    Else
+      AddQueueNum += 1
+    EndIf
+    If akReference
+      If JFormMap.hasKey(JF_AddQueue, akReference)
+        JFormMap.setInt(JF_AddQueue, akReference, JFormMap.getInt(JF_AddQueue, akReference) + 1)
+      Else
+        JFormMap.setInt(JF_AddQueue, akReference, 1)
+      EndIf
+    Else
+      If JFormMap.hasKey(JF_AddQueue, akBaseObject)
+        JFormMap.setInt(JF_AddQueue, akBaseObject, JFormMap.getInt(JF_AddQueue, akBaseObject) + 1)
+      Else
+        JFormMap.setInt(JF_AddQueue, akBaseObject, 1)
+      EndIf
+    EndIf
+    Utility.Wait(0.5)
+    If FirstItem
+      While AddQueueNum > 0
+        Utility.Wait(0.1)
+      EndWhile
+    Else
+      AddQueueNum -= 1
+      Return
+    EndIf
+    Form ItemKey = JFormMap.nextKey(JF_AddQueue)
+    Note("Stomach exists: " + Stomach as Bool + ", num unique items = " + JFormMap.count(JF_AddQueue))
+    While ItemKey
+      Form Base
+      If ItemKey as ObjectReference
+        Base = (ItemKey as ObjectReference).GetBaseObject()
+      Else
+        Base = ItemKey
+      EndIf
+      Note("Adding item " + Base.GetName())
+      Stomach.addToContents(GetTargetActor(), ItemKey as ObjectReference, Base, "Breakdown", aiItemCount = JFormMap.getInt(JF_AddQueue, ItemKey, 1))
+      ItemKey = JFormMap.nextKey(JF_AddQueue, ItemKey)
+    EndWhile
+    Stomach.updateArchetype(GetTargetActor())
+    SCLib.updateDamage(GetTargetActor())
+    Int Handle = ModEvent.Create("SCLActorItemEaten")
+    ModEvent.PushForm(Handle, GetTargetActor())
+    ModEvent.PushInt(Handle, JF_AddQueue)
+    ModEvent.Send(Handle)
+    JF_AddQueue = JValue.release(JF_AddQueue)
   EndIf
 EndEvent
 

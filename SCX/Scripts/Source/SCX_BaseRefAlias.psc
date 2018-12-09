@@ -14,7 +14,7 @@ Bool Property EnableDebugMessages Auto
 Bool Initialized
 Event OnInit()
   If !Initialized
-    ;Utility.wait(0.2)
+    Utility.wait(0.2)
     Initialized = True
     If !SCXSet
       SCXSet = JMap.getForm(SCX_Library.getJM_QuestList(), "SCX_Settings") as SCX_Settings

@@ -37,7 +37,7 @@ EndEvent
 
 Function setupMonitor()
   EnableDebugMessages = True
-  Notice("Running setup...")
+  ;Notice("Running setup...")
   ;Lock()
   Actor Target = GetActorReference()
   If Target && Target != MyActor
@@ -48,14 +48,14 @@ Function setupMonitor()
     Int JA_UpdateList = (GetOwningQuest() as SCX_MonitorManager).JA_MonitorUpdatePrioityList
     Int i
     Int NumLibs = JArray.count(JA_UpdateList)
-    Notice("Number of Libraries =" + NumLibs)
+    ;Notice("Number of Libraries =" + NumLibs)
     While i < NumLibs
       SCX_BaseLibrary Lib = JArray.getForm(JA_UpdateList, i) as SCX_BaseLibrary
       If Lib
-        Note("Library Found!")
+        ;Note("Library Found!")
         Lib.monitorSetup(Self, MyActor)
       Else
-        Note("Library not found!")
+        ;Note("Library not found!")
       EndIf
       i += 1
     EndWhile

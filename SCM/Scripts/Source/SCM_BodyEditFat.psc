@@ -245,7 +245,22 @@ Function setSelectOptions(SCX_ModConfigMenu MCM, String asValue, Int aiOption)
   EndIf
 EndFunction
 
-Bool Property EnableMorph Auto
+Bool Property EnableMorph
+  Bool Function Get()
+    If !JMap.hasKey(JM_Settings, "EnableMorph")
+      JMap.setInt(JM_Settings, "EnableMorph", 0)
+    EndIf
+    Return JMap.getInt(JM_Settings, "EnableMorph") as Bool
+  EndFunction
+  Function Set(Bool a_val)
+    If a_val
+      JMap.setInt(JM_Settings, "EnableMorph", 1)
+    Else
+      JMap.setInt(JM_Settings, "EnableMorph", 0)
+    EndIf
+  EndFunction
+EndProperty
+
 Int Property JM_ActorValueWeights
   Int Function Get()
     If !JMap.hasKey(JM_Settings, "JM_ActorValueWeights")

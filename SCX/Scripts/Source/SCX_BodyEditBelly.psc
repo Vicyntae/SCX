@@ -13,16 +13,18 @@ Function editBodyPart(Actor akTarget, Float afValue, String asMethodOverride = "
   If !akTarget.HasKeyword(SCXSet.ActorTypeNPC)
     Race akRace = akTarget.GetRace()
     If CreatureRaces.find(akRace) == -1
+      ;Note(nameGet(akTarget) + " is not a valid race! Canceling...")
       Return
     EndIf
   EndIf
   Int TargetData = SCXLib.getTargetData(akTarget)
+
   afValue *= Multiplier
+
   afValue *= (akTarget.GetLeveledActorBase().GetWeight() / 100 * HighScale) + 1
   afValue /= akTarget.GetScale() * NetImmerse.GetNodeScale(akTarget, "NPC Root [Root]", False)
   afValue = curveValue(afValue)
   afValue = PapyrusUtil.ClampFloat(afValue, Minimum, Maximum)
-
   JMap.setFlt(TargetData, "SCX_BodyEditBellyTargetValue", afValue)
   If asMethodOverride
     JMap.setStr(TargetData, MethodKey, asMethodOverride)
@@ -31,7 +33,7 @@ Function editBodyPart(Actor akTarget, Float afValue, String asMethodOverride = "
     JMap.setInt(TargetData, EquipmentTierKey, aiEquipSetOverride)
   EndIf
   If !akTarget.HasSpell(SCX_BodyEditBellySpell)
-    akTarget.AddSpell(SCX_BodyEditBellySpell, False)
+    akTarget.AddSpell(SCX_BodyEditBellySpell, True)
   EndIf
   Int Handle = ModEvent.Create("SCX_BodyEditBellySpellMethodUpdate")
   ModEvent.PushForm(Handle, akTarget)

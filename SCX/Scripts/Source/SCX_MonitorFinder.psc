@@ -45,18 +45,6 @@ Bool Function Start()
     Utility.Wait(2)
     ;Note("Is Monitor Manager running? " + SCX_MonitorManagerQuest.IsRunning())
   EndIf
-  ;/ReferenceAlias PlayerAlias = SCX_MonitorManagerQuest.GetNthAlias(0) as ReferenceAlias
-  Note("PlayerAlias Exists: " + PlayerAlias as Bool + ", Player Exists: " + PlayerRef.GetLeveledActorBase().GetName())
-  StartScriptTimer()
-  Actor PlayerAliasActor = PlayerAlias.GetReference() as Actor
-  StopScriptTimer()
-  Note("PlayerAliasActor = " + PlayerAliasActor.GetLeveledActorBase().GetName())
-  If PlayerAliasActor != PlayerRef
-    Note("Filling PlayerAlias")
-    PlayerAlias.ForceRefTo(PlayerRef)
-  Else
-    Note("PlayerAlias already filled!")
-  EndIf/;
   If !LoadedActors || LoadedActors.length != SCX_MonitorManagerQuest.GetNumAliases()
     ;Notice("Loaded Actors List not found! Remaking list...")
     LoadedActors = getActors()
@@ -107,7 +95,7 @@ Bool Function Start()
       Race Trackrace = NewActor.GetRace()
       If !NewActor.HasKeyword(SCXSet.ActorTypeNPC)
         If !SCX_TrackRaceList.HasForm(Trackrace)
-          Note("Actor is not NPC, and race is not on track list. Rejected.")
+          ;Note("Actor is not NPC, and race is not on track list. Rejected.")
           SCX_RejectList.AddForm(NewActor.GetLeveledActorBase())
           NoList = True
         EndIf
@@ -115,12 +103,12 @@ Bool Function Start()
       If !NoList
         Int j = LoadedActors.find(NewActor)
         If j < 0
-          Notice(nameGet(NewActor) + " is not in Monitor Manager! Adding...")
+          ;Notice(nameGet(NewActor) + " is not in Monitor Manager! Adding...")
           Int k = addToLoadedActors(NewActor)
           If k != -1
             LoadedActors[k] = NewActor
           Else
-            Notice("No slots open!")
+            ;Notice("No slots open!")
           EndIf
         EndIf
       EndIf

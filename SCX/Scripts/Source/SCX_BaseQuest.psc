@@ -14,7 +14,7 @@ Bool Property EnableDebugMessages Auto
 Bool Initialized
 Event OnInit()
   If !Initialized
-    Utility.Wait(0.2)
+    Utility.Wait(0.5)
     ;Notice("Starting up quest...")
     Initialized = True
     If !SCXSet

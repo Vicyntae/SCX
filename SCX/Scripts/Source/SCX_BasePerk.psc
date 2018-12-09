@@ -16,6 +16,10 @@ Int Function _getSCX_JC_List()
   Return SCXSet.JM_PerkIDs
 EndFunction
 
+Function _setup()
+  Note("Perk " + Name + " initialized.")
+EndFunction
+
 String Function getPerkName(Int aiPerkLevel)
   If aiPerkLevel
     Return AbilityArray[aiPerkLevel].GetName()
@@ -74,7 +78,7 @@ Bool Function showPerk(Actor akTarget)
 EndFunction
 
 Function addMCMOptions(SCX_ModConfigMenu MCM, Int JI_OptionIndexes, Int JM_SelectedPerkLevel)
-  If showPerk(MCM.SelectedActor)
+  If showPerk(MCM.SelectedActor) || SCXSet.DebugEnable
     Int MaxValue = AbilityArray.Length - 1
     Int CurrentPerkValue = getPerkLevel(MCM.SelectedActor)
     If !CurrentPerkValue

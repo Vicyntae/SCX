@@ -248,7 +248,22 @@ Function setSelectOptions(SCX_ModConfigMenu MCM, String asValue, Int aiOption)
   saveProfile()
 EndFunction
 
-Bool Property EnableMorph Auto
+Bool Property EnableMorph
+  Bool Function Get()
+    If !JMap.hasKey(JM_Settings, "EnableMorph")
+      JMap.setInt(JM_Settings, "EnableMorph", 0)
+    EndIf
+    Return JMap.getInt(JM_Settings, "EnableMorph") as Bool
+  EndFunction
+  Function Set(Bool a_val)
+    If a_val
+      JMap.setInt(JM_Settings, "EnableMorph", 1)
+    Else
+      JMap.setInt(JM_Settings, "EnableMorph", 0)
+    EndIf
+  EndFunction
+EndProperty
+
 Int Property JM_ActorValueWeights
   Int Function Get()
     If !JMap.hasKey(JM_Settings, "JM_ActorValueWeights")
@@ -286,7 +301,7 @@ Int Property JM_MorphEffectRating
     If !JMap.hasKey(JM_Settings, "JM_MorphEffectRating")
       Int JM_MER = JMap.object()
       JMap.setObj(JM_Settings, "JM_MorphEffectRating", JM_MER)
-      JMap.setFlt(JM_MER, "Samson", 0)
+      JMap.setFlt(JM_MER, "Samson", 2)
       JMap.setFlt(JM_MER, "Samuel", 0)
       JMap.setFlt(JM_MER, "AnkleSize", 0)
       JMap.setFlt(JM_MER, "AppleCheeks", 0)

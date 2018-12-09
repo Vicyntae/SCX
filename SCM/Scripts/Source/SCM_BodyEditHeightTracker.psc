@@ -29,6 +29,12 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
   ActorData = SCXLib.getTargetData(MyActor)
   Gender = MyActor.GetLeveledActorBase().GetSex() as Bool
   ;Notice("Height tracker starting! Starting method = " + Gender)
+  Float DefaultHeight = JMap.getFlt(ActorData, "SCM_DefaultHeight", -1)
+  If DefaultHeight <= 0
+    Utility.Wait(5)
+    DefaultHeight = akTarget.GetScale() * akTarget.GetScale() * NetImmerse.GetNodeScale(akTarget, "NPC Root [Root]", False)
+    JMap.setFlt(ActorData, "SCM_DefaultHeight", DefaultHeight)
+  EndIf
   RegisterForModEvent("SCM_BodyEditHeightSpellUpdate", "OnEditUpdate")
   RegisterForSingleUpdate(0.1)
 EndEvent
@@ -45,7 +51,7 @@ EndEvent
 
 Float CurrentSize = -1.0
 Event OnUpdate()
-  Float TargetValue = JMap.getFlt(ActorData, "SCM_BodyEditHeightTargetValue", 1)
+  Float TargetValue = JMap.getFlt(ActorData, "SCM_BodyEditHeightTargetValue", 1) - JMap.getFlt(ActorData, "SCM_DefaultHeight")
   Float Inc = Height.Increment
   If RapidChange
     Inc *= 5

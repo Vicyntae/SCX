@@ -7,6 +7,7 @@ Function _reloadMaintenence()
 EndFunction
 
 Event OnSettingsListBuild()
+  Utility.wait(0.5)
   If SCXSet
     Int JC_Container = _getSCX_JC_List()
     If JC_Container

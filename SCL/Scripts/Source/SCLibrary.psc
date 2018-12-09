@@ -278,24 +278,28 @@ Function sendProcessEvent(Actor akTarget, Float afTimePassed)
 EndFunction
 
 Function monitorUpdate(SCX_Monitor akMonitor, Actor akTarget, Int aiTargetData, Float afTimePassed, Float afCurrentUpdateTime, Bool abDailyUpdate)
-  sendProcessEvent(akTarget, afTimePassed)
-  Bool Digesting = JMap.getInt(aiTargetData, "SCLNowDigesting") as Bool
-  Utility.Wait(0.1)
-  If Digesting
-    Int i
-    While Digesting && i < 50
-      Utility.Wait(0.1)
-      Digesting = JMap.getInt(aiTargetData, "SCLNowDigesting") as Bool
-      i += 1
-    EndWhile
-  EndIf
+  If JMap.getInt(aiTargetData, "SCLMonitorUpdate") == 0
+    JMap.setInt(aiTargetData, "SCLMonitorUpdate", 1)
+    sendProcessEvent(akTarget, afTimePassed)
+    Bool Digesting = JMap.getInt(aiTargetData, "SCLNowDigesting") as Bool
+    Utility.Wait(0.1)
+    If Digesting
+      Int i
+      While Digesting && i < 50
+        Utility.Wait(0.1)
+        Digesting = JMap.getInt(aiTargetData, "SCLNowDigesting") as Bool
+        i += 1
+      EndWhile
+    EndIf
 
-  updateDamage(akTarget, aiTargetData)
-  Belly.updateBodyPart(akTarget)
-  ;/If abDailyUpdate
-    Notice("Performing daily update")
-    ;performDailyUpdate(akTarget)
-  EndIf/;
+    updateDamage(akTarget, aiTargetData)
+    Belly.updateBodyPart(akTarget)
+    ;/If abDailyUpdate
+      Notice("Performing daily update")
+      ;performDailyUpdate(akTarget)
+    EndIf/;
+    JMap.setInt(aiTargetData, "SCLMonitorUpdate", 0)
+  EndIf
 EndFunction
 
 Function monitorDeath(SCX_Monitor akMonitor, Actor akTarget, Actor akKiller)
@@ -700,7 +704,7 @@ Function updateDamage(Actor akTarget, Int aiTargetData = 0)
 
   If Fullness > MaxCap && canVomit(akTarget)
     Stomach.removeAmountActorItems(akTarget,Fullness * 0.3, 0.2, 0.2)
-    addVomitDamage(akTarget)
+    SCLSet.SCL_VomitDamageSpell.cast(akTarget)
     Stomach.updateArchetype(akTarget)
     JMap.setInt(TargetData, "SCLTotalTimesVomited", JMap.getInt(TargetData, "SCLTotalTimesVomited") + 1)
   EndIf
@@ -753,10 +757,6 @@ EndFunction
 Bool Function canVomit(Actor akTarget)
   Return !akTarget.HasMagicEffect(SCLSet.SCL_VomitDamageEffect)
   ;Return !akTarget.HasSpell(SCL_VomitDamageSpell)
-EndFunction
-
-Function addVomitDamage(Actor akTarget)
-  SCLSet.SCL_VomitDamageSpell.cast(akTarget)
 EndFunction
 
 ;Vomit Functions ***************************************************************

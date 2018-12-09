@@ -54,7 +54,7 @@ Bool Function Start()
   RegisterForMenu("Sleep/Wait Menu")
   RegisterForModEvent("SCLReset", "OnSCLReset")
   RegisterForSingleUpdate(UpdateRate)
-  ;(GetNthAlias(0) as SCX_Monitor).Setup()
+  (GetNthAlias(0) as SCX_Monitor).setupMonitor()
   Return bReturn
 EndFunction
 

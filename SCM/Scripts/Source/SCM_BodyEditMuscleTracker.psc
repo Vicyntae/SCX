@@ -27,6 +27,7 @@ String FullModKey = "Skyrim Character Morphs"
 Event OnEffectStart(Actor akTarget, Actor akCaster)
   MyActor = akTarget
   ActorData = SCXLib.getTargetData(MyActor)
+  Note("Starting muscle tracker...")
   Gender = MyActor.GetLeveledActorBase().GetSex() as Bool
   If Gender
     ;GoToState("Female")
@@ -60,6 +61,7 @@ State Female
 
   Event OnUpdate()
     Float TargetValue = JMap.getFlt(ActorData, "SCM_BodyEditMuscleTargetValue", 1)
+    Note("Updating muscle to value " + TargetValue)
     Int JM_Muscle = JMap.getObj(ActorData, "SCM_MorphEffectMuscleRating")
     If !JValue.isExists(JM_Muscle) || !JValue.isMap(JM_Muscle)
       JM_Muscle = Muscle.JM_MorphEffectRating
